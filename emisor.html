@@ -91,9 +91,24 @@
         let sonidoAlarma = new Audio('https://actions.google.com/sounds/v1/alarms/fire_alarm_classic.ogg');
         sonidoAlarma.loop = true;
 
+        // Función maestra para desbloquear el audio en navegadores estrictos
+        function desbloquearAudio(audioObj) {
+            audioObj.muted = true;
+            audioObj.play().then(() => {
+                audioObj.pause();
+                audioObj.muted = false;
+                audioObj.currentTime = 0;
+            }).catch(e => console.log("Esperando permiso de audio...", e));
+        }
+
         window.iniciarSesion = function() {
             BUZON_SECRETO = document.getElementById('inputContrasena').value.trim();
             if (BUZON_SECRETO === "") return alert("Introduce una contraseña.");
+            
+            // Desbloqueamos los audios en el primer clic del usuario
+            desbloquearAudio(sonidoAviso);
+            desbloquearAudio(sonidoAlarma);
+
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'flex';
 
@@ -124,9 +139,13 @@
         }
 
         window.iniciarVigilancia = function() {
-            // Inicialización clásica de audio que funcionaba bien
-            sonidoAviso.play().then(() => sonidoAviso.pause()).catch(e => console.log(e));
-            sonidoAlarma.play().then(() => sonidoAlarma.pause()).catch(e => console.log(e));
+            // Bip corto de confirmación al activar
+            sonidoAviso.currentTime = 0;
+            sonidoAviso.play();
+            setTimeout(() => { 
+                sonidoAviso.pause(); 
+                sonidoAviso.currentTime = 0; 
+            }, 300);
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(()=>{}, ()=>{}, {enableHighAccuracy: true});
