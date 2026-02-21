@@ -88,31 +88,43 @@
         }
         window.activarCentrado = activarCentrado;
 
-        // --- Vibración (el sonido lo emite el emisor) ---
+        // =============================================
+        // VIBRACIÓN — robusta para Android Chrome
+        // El truco: llamar vibrate(1) en cada gesto del
+        // usuario para mantener el "permiso" activo.
+        // =============================================
         let alarmaRunning = false;
-        let vibracionInterval = null;
+        let vibLoop = null;
+
+        function vibPreload() {
+            // 1ms invisible — desbloquea la API en el contexto actual
+            if ("vibrate" in navigator) navigator.vibrate(1);
+        }
 
         function iniciarAlarma() {
             if (alarmaRunning) return;
             alarmaRunning = true;
-            if ("vibrate" in navigator) {
-                navigator.vibrate([800, 300, 800, 300, 800]);
-                vibracionInterval = setInterval(() => {
-                    if (alarmaRunning) navigator.vibrate([800, 300, 800, 300, 800]);
-                }, 3200);
-            }
+            _vibTick();
+        }
+
+        function _vibTick() {
+            if (!alarmaRunning) return;
+            // Llamada simple de duración larga — más fiable que arrays en Android
+            if ("vibrate" in navigator) navigator.vibrate(900);
+            // Renovar antes de que expire
+            vibLoop = setTimeout(_vibTick, 1100);
         }
 
         function pararAlarma() {
             alarmaRunning = false;
-            if (vibracionInterval) { clearInterval(vibracionInterval); vibracionInterval = null; }
+            if (vibLoop) { clearTimeout(vibLoop); vibLoop = null; }
             if ("vibrate" in navigator) navigator.vibrate(0);
         }
-        // ------------------------------------
 
         window.iniciarSesion = function() {
             BUZON_SECRETO = document.getElementById('inputContrasena').value.trim();
             if (BUZON_SECRETO === "") return alert("La contraseña es obligatoria.");
+            vibPreload();   // desbloquear vibración desde el gesto del login
             
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'block';
@@ -195,11 +207,13 @@
 
         window.apagarRemoto = function() {
             if(!BUZON_SECRETO) return;
+            vibPreload();
             setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "apagar" }, { merge: true });
         }
 
         window.silenciarRemoto = function() {
             if(!BUZON_SECRETO) return;
+            vibPreload();
             setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "silenciar" }, { merge: true });
             pararAlarma();
         }
