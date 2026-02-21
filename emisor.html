@@ -248,20 +248,31 @@
             }
             ciclo();
 
-            // Vibración continua mientras suena la alarma
-            if ("vibrate" in navigator) {
-                navigator.vibrate([600, 200, 600, 200, 600, 400]);
-                vibracionInterval = setInterval(() => {
-                    if (alarmaRunning) navigator.vibrate([600, 200, 600, 200, 600, 400]);
-                }, 2800);
-            }
+            // Iniciar loop de vibración
+            vibrarLoop();
+        }
+
+        function warmUpVibracion() {
+            if ("vibrate" in navigator) navigator.vibrate(1);
+        }
+
+        let vibracionTimeout = null;
+
+        function vibrarLoop() {
+            if (!alarmaRunning) return;
+            if ("vibrate" in navigator) navigator.vibrate(800);
+            vibracionTimeout = setTimeout(vibrarLoop, 1100);  // 800ms vibra, 300ms pausa
+        }
+
+        function pararVibracion() {
+            if (vibracionTimeout) { clearTimeout(vibracionTimeout); vibracionTimeout = null; }
+            if ("vibrate" in navigator) navigator.vibrate(0);
         }
 
         function pararAlarma() {
             alarmaRunning = false;
             if (alarmaTimeout) { clearTimeout(alarmaTimeout); alarmaTimeout = null; }
-            if (vibracionInterval) { clearInterval(vibracionInterval); vibracionInterval = null; }
-            if ("vibrate" in navigator) navigator.vibrate(0);
+            pararVibracion();
         }
         // ------------------------------------
 
@@ -269,8 +280,9 @@
             BUZON_SECRETO = document.getElementById('inputContrasena').value.trim();
             if (BUZON_SECRETO === "") return alert("Introduce una contraseña.");
             
-            // Desbloquear AudioContext con el gesto del usuario
+            // Desbloquear AudioContext y vibración con el gesto del usuario
             getAudioCtx();
+            warmUpVibracion();
 
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'flex';
@@ -302,7 +314,9 @@
         }
 
         window.iniciarVigilancia = function() {
-            // AudioContext ya desbloqueado desde el login; nada más que hacer aquí
+            // Warm-up de audio y vibración desde el gesto del usuario
+            getAudioCtx();
+            warmUpVibracion();
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(()=>{}, ()=>{}, {enableHighAccuracy: true});
             }
@@ -326,6 +340,7 @@
         }
 
         window.simularMovimiento = function() {
+            warmUpVibracion();
             if (vigilando) procesarMovimiento(true);
         };
 
