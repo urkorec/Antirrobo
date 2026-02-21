@@ -28,6 +28,7 @@
         .btn-activar:active { transform: scale(0.95); }
         .btn-detener { background: linear-gradient(45deg, #cb2d3e, #ef473a); box-shadow: 0 4px 15px rgba(239,71,58,0.4); display: none; }
         .btn-pantalla { background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); display: none; }
+        .btn-simular { background: rgba(243, 156, 18, 0.8); border: 2px dashed #f1c40f; display: none; }
         
         #estado { margin-top: 20px; font-size: 20px; font-weight: 800; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.4); width: 90%; max-width: 350px; backdrop-filter: blur(5px); }
         #coordenadas { margin-top: 10px; font-size: 13px; color: #ddd; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 8px; width: 90%; max-width: 350px; }
@@ -62,6 +63,7 @@
         </div>
 
         <button class="btn btn-activar" id="btnActivar" onclick="iniciarVigilancia()">Escudar Vehículo</button>
+        <button class="btn btn-simular" id="btnSimular" onclick="simularMovimiento()">👋 Simular Movimiento</button>
         <button class="btn btn-pantalla" id="btnPantalla" onclick="apagarPantalla()">🕶️ Oscurecer Pantalla</button>
         <button class="btn btn-detener" id="btnDetener" onclick="detenerVigilancia()">🛑 Desactivar Escudo</button>
         
@@ -128,10 +130,10 @@
         }
 
         window.iniciarVigilancia = function() {
-            sonidoAviso.play().then(() => sonidoAviso.pause()).catch(() => {});
-            sonidoAlarma.play().then(() => sonidoAlarma.pause()).catch(() => {});
+            // Arreglo del audio: Se carga y se reproduce con volumen 0 para desbloquearlo en el navegador
+            sonidoAviso.volume = 0; sonidoAviso.play().then(() => { sonidoAviso.pause(); sonidoAviso.volume = 1; sonidoAviso.currentTime = 0; }).catch(()=>{});
+            sonidoAlarma.volume = 0; sonidoAlarma.play().then(() => { sonidoAlarma.pause(); sonidoAlarma.volume = 1; sonidoAlarma.currentTime = 0; }).catch(()=>{});
 
-            // SOLICITAR PERMISO GPS AL INSTANTE (Antes del robo)
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(()=>{}, ()=>{}, {enableHighAccuracy: true});
             }
@@ -146,6 +148,9 @@
             document.getElementById('selector-modos').style.display = "none";
             document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA";
             document.getElementById('btnActivar').style.display = "none";
+            
+            // Mostrar botones extra
+            document.getElementById('btnSimular').style.display = "block";
             document.getElementById('btnPantalla').style.display = "block";
             document.getElementById('btnDetener').style.display = "block";
             
@@ -153,18 +158,24 @@
             window.addEventListener('devicemotion', detectarGolpe);
         }
 
+        // Nueva función para el botón de simulación
+        window.simularMovimiento = function() {
+            if (!vigilando) return;
+            procesarMovimiento(true); // El 'true' fuerza el salto de nivel aunque haya pasado poco tiempo
+        };
+
         function detectarGolpe(evento) {
             if (!vigilando || nivelAlarma === 2) return;
             let acc = evento.accelerationIncludingGravity || evento.acceleration;
             if (!acc || acc.x === null) return;
             if (lastX !== null) {
                 let diff = Math.abs(acc.x - lastX) + Math.abs(acc.y - lastY) + Math.abs(acc.z - lastZ);
-                if (diff > 10) procesarMovimiento();
+                if (diff > 10) procesarMovimiento(false);
             }
             lastX = acc.x; lastY = acc.y; lastZ = acc.z;
         }
 
-        function procesarMovimiento() {
+        function procesarMovimiento(forzarSimulacion) {
             let ahora = Date.now();
             let modo = obtenerModo();
 
@@ -178,7 +189,7 @@
                     temporizadorNormal = setTimeout(() => {
                         if (nivelAlarma === 1) { nivelAlarma = 0; document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; enviarDatos(); }
                     }, 30000);
-                } else if (nivelAlarma === 1 && (ahora - tiempoUltimoAviso > 2000)) {
+                } else if (nivelAlarma === 1 && (forzarSimulacion || ahora - tiempoUltimoAviso > 2000)) {
                     nivelAlarma = 2; if(temporizadorNormal) clearTimeout(temporizadorNormal); dispararAlarmaSilenciosa();
                 }
             } else if (modo === "seguro") {
@@ -192,14 +203,22 @@
                     temporizadorNormal = setTimeout(() => {
                         if (nivelAlarma === 1) { nivelAlarma = 0; document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; enviarDatos(); }
                     }, 30000);
-                } else if (nivelAlarma === 1 && (ahora - tiempoUltimoAviso > 2000)) {
+                } else if (nivelAlarma === 1 && (forzarSimulacion || ahora - tiempoUltimoAviso > 2000)) {
                     nivelAlarma = 2; if(temporizadorNormal) clearTimeout(temporizadorNormal); dispararAlarmaGeneral();
                 }
             }
         }
 
         function dispararAlarmaSilenciosa() { document.body.className = 'alerta-roja'; document.getElementById('estado').innerText = "🔴 ROBO SILENCIOSO"; iniciarRastreoGPS(); enviarDatos(); }
-        function dispararAlarmaGeneral() { document.body.className = 'alerta-roja'; document.getElementById('estado').innerText = "🔴 SIRENA ACTIVADA"; sonidoAlarma.play(); iniciarRastreoGPS(); enviarDatos(); }
+        
+        function dispararAlarmaGeneral() { 
+            document.body.className = 'alerta-roja'; 
+            document.getElementById('estado').innerText = "🔴 SIRENA ACTIVADA"; 
+            sonidoAlarma.currentTime = 0; 
+            sonidoAlarma.play(); // Arreglado
+            iniciarRastreoGPS(); 
+            enviarDatos(); 
+        }
 
         window.silenciarAlarma = function() {
             nivelAlarma = 0; if(temporizadorNormal) clearTimeout(temporizadorNormal);
@@ -218,22 +237,26 @@
             document.getElementById('pantalla-negra').style.display = 'none';
             document.body.className = ''; document.getElementById('estado').innerText = "⚪ SISTEMA APAGADO";
             document.getElementById('coordenadas').innerText = "GPS: Apagado";
+            
+            // Ocultar botones extra
+            document.getElementById('btnSimular').style.display = "none";
+            document.getElementById('btnPantalla').style.display = "none"; 
+            document.getElementById('btnDetener').style.display = "none";
+            
             document.getElementById('selector-modos').style.display = "block";
             document.getElementById('btnActivar').style.display = "block";
-            document.getElementById('btnPantalla').style.display = "none"; document.getElementById('btnDetener').style.display = "none";
             enviarDatos(); 
         };
 
         function iniciarRastreoGPS() {
             document.getElementById('coordenadas').innerText = "📍 Activando GPS...";
             if (navigator.geolocation) {
-                // GPS LIGERAMENTE MÁS RELAJADO (Actualiza más suave)
                 gpsTracker = navigator.geolocation.watchPosition((posicion) => {
                     latActual = posicion.coords.latitude; lonActual = posicion.coords.longitude;
                     document.getElementById('coordenadas').innerText = `📍 Pos: ${latActual.toFixed(5)}, ${lonActual.toFixed(5)}`;
                     enviarDatos();
                 }, (error) => { document.getElementById('coordenadas').innerText = "❌ Error GPS"; }, 
-                { enableHighAccuracy: true, maximumAge: 2000, timeout: 8000 }); // maximumAge: 3000 estabiliza el mapa
+                { enableHighAccuracy: true, maximumAge: 3000, timeout: 8000 });
             }
         }
     </script>
