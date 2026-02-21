@@ -9,50 +9,48 @@
     <style>
         body { margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #1a1a2e;}
         
-        /* Pantalla de Login */
         #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; background-color: #1a1a2e; }
         .input-pass { padding: 15px; font-size: 18px; border-radius: 8px; border: none; margin-bottom: 20px; width: 80%; max-width: 300px; text-align: center; }
         .btn-login { background: #4facfe; color: white; padding: 15px 30px; font-size: 18px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 80%; max-width: 300px; }
         
-        /* App Principal */
         #app-screen { display: none; height: 100vh; width: 100vw; }
         #mapa { height: 100%; width: 100%; }
         
         #panel-info { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.4); text-align: center; width: 85%; max-width: 400px; }
-        h3 { margin: 0 0 10px 0; color: #333; }
+        h3 { margin: 0 0 5px 0; color: #333; }
+        .modo-badge { display: inline-block; background: #eee; color: #555; padding: 3px 8px; border-radius: 12px; font-size: 12px; margin-bottom: 15px; font-weight: bold;}
         #estado-tracker { font-size: 16px; color: #555; margin-bottom: 10px; font-weight: bold;}
         
         #alerta { background: red; color: white; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 18px; display: none; animation: parpadeo 0.5s infinite; margin-bottom: 10px; }
         @keyframes parpadeo { 0% { background-color: #ff0000; } 50% { background-color: #8b0000; } 100% { background-color: #ff0000; } }
 
-        /* Botón de control remoto */
         .btn-remoto { background: #d9534f; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; display: none; }
         .btn-remoto:active { background: #c9302c; }
     </style>
 </head>
 <body>
-
     <div id="login-screen">
         <h2>📍 Acceso al Monitor</h2>
         <p>Introduce la contraseña de tu dispositivo:</p>
         <input type="password" id="inputContrasena" class="input-pass" placeholder="Ej: MiBiciSecreta123">
-        <button class="btn-login" onclick="iniciarSesion()">Conectar al Radar</button>
+        <button class="btn-login" onclick="iniciarSesion()">Conectar y Activar Notificaciones</button>
+        <p style="font-size: 12px; color: #aaa; margin-top: 20px; max-width: 300px; text-align: center;">El navegador te pedirá permiso para enviar notificaciones flotantes. Por favor, acéptalo.</p>
     </div>
 
     <div id="app-screen">
         <div id="panel-info">
             <h3>📍 Centro de Control</h3>
+            <div id="modo-texto" class="modo-badge">Esperando modo...</div>
             <div id="estado-tracker">Esperando conexión segura...</div>
             <div id="alerta">¡ROBO DETECTADO!</div>
             
-            <button id="btnApagarRemoto" class="btn-remoto" onclick="apagarRemoto()">📴 Apagar Alarma a Distancia</button>
+            <button id="btnApagarRemoto" class="btn-remoto" onclick="apagarRemoto()">🛑 Desactivar Vigilancia a Distancia</button>
         </div>
         <div id="mapa"></div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-        // Importamos setDoc para poder enviar órdenes
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -69,25 +67,22 @@
 
         let BUZON_SECRETO = "";
         let mapa, marcador;
+        let ultimoTiempoNotificacion = 0; 
 
-        // 1. FUNCIÓN DE LOGIN
         window.iniciarSesion = function() {
             BUZON_SECRETO = document.getElementById('inputContrasena').value.trim();
-            if (BUZON_SECRETO === "") {
-                alert("La contraseña es obligatoria.");
-                return;
-            }
+            if (BUZON_SECRETO === "") return alert("La contraseña es obligatoria.");
             
+            if ("Notification" in window) Notification.requestPermission();
+
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'block';
 
-            // Inicializamos el mapa ahora que el div es visible
             mapa = L.map('mapa').setView([43.3390, -1.7896], 15);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapa);
             marcador = L.marker([43.3390, -1.7896]).addTo(mapa);
             marcador.bindPopup("Buscando dispositivo...").openPopup();
 
-            // EMPEZAR A ESCUCHAR LA BASE DE DATOS SECRETA
             onSnapshot(doc(db, "dispositivos", BUZON_SECRETO), (documento) => {
                 if (documento.exists()) {
                     let datos = documento.data();
@@ -95,49 +90,84 @@
                     marcador.setLatLng(nuevaPosicion);
                     mapa.panTo(nuevaPosicion);
 
+                    let modoDiv = document.getElementById('modo-texto');
                     let estadoDiv = document.getElementById('estado-tracker');
                     let alertaDiv = document.getElementById('alerta');
                     let btnRemoto = document.getElementById('btnApagarRemoto');
 
-                    if (datos.nivelAlarma === 0) {
-                        estadoDiv.innerHTML = "Estado: ⚪ Apagado / Reposo";
+                    if(datos.modo === "normal") modoDiv.innerHTML = "🔵 Modo Normal";
+                    else if(datos.modo === "seguro") modoDiv.innerHTML = "🔴 Modo Seguro";
+
+                    // GESTIÓN DE ESTADOS: ¿Está vigilando o está apagado?
+                    if (!datos.activo) {
+                        estadoDiv.innerHTML = "Estado: ⚪ Sistema Apagado";
                         estadoDiv.style.color = "gray";
                         alertaDiv.style.display = 'none';
-                        btnRemoto.style.display = 'none'; // Ocultamos el botón porque ya está apagado
+                        btnRemoto.style.display = 'none'; // Desaparece el botón porque ya está apagado
                         marcador.bindPopup("Dispositivo en reposo").closePopup();
-                    } else if (datos.nivelAlarma === 1) {
-                        estadoDiv.innerHTML = "Estado: 🟡 ADVERTENCIA";
-                        estadoDiv.style.color = "orange";
-                        alertaDiv.style.display = 'none';
-                        btnRemoto.style.display = 'block'; // Mostramos el botón para apagar
-                        marcador.bindPopup("⚠️ Movimiento detectado").openPopup();
-                    } else if (datos.nivelAlarma === 2) {
-                        estadoDiv.innerHTML = "Estado: 🔴 ALARMA ACTIVADA";
-                        estadoDiv.style.color = "red";
-                        alertaDiv.style.display = 'block';
-                        btnRemoto.style.display = 'block'; // Mostramos el botón para apagar
-                        marcador.bindPopup("<b>¡EL DISPOSITIVO ESTÁ AQUÍ!</b>").openPopup();
+                    } else {
+                        // SI ESTÁ ACTIVO, MOSTRAMOS SIEMPRE EL BOTÓN DE APAGAR
+                        btnRemoto.style.display = 'block'; 
+
+                        if (datos.nivelAlarma === 0) {
+                            estadoDiv.innerHTML = "Estado: 🟢 Vigilando (Seguro)";
+                            estadoDiv.style.color = "green";
+                            alertaDiv.style.display = 'none';
+                            marcador.bindPopup("Bici Segura").closePopup();
+                        
+                        } else if (datos.nivelAlarma === 1) {
+                            alertaDiv.style.display = 'none';
+                            
+                            if (datos.modo === "normal") {
+                                estadoDiv.innerHTML = "Estado: 🟡 Posible movimiento (Esperando 30s)";
+                                estadoDiv.style.color = "orange";
+                                marcador.bindPopup("Movimiento detectado").openPopup();
+                            } else if (datos.modo === "seguro") {
+                                estadoDiv.innerHTML = "Estado: 🟡 ¡ALERTA DE ROBO!";
+                                estadoDiv.style.color = "orange";
+                                marcador.bindPopup("⚠️ GPS Activado").openPopup();
+                                
+                                if (datos.tiempo !== ultimoTiempoNotificacion) {
+                                    dispararNotificacion("⚠️ ¡Moviendo Bicicleta!", "Se ha detectado movimiento en el Modo Seguro. Revisa el GPS.");
+                                    ultimoTiempoNotificacion = datos.tiempo;
+                                }
+                            }
+                        } else if (datos.nivelAlarma === 2) {
+                            estadoDiv.innerHTML = "Estado: 🔴 ALARMA SONANDO";
+                            estadoDiv.style.color = "red";
+                            alertaDiv.style.display = 'block';
+                            marcador.bindPopup("<b>¡EL DISPOSITIVO ESTÁ AQUÍ!</b>").openPopup();
+                            
+                            if (datos.tiempo !== ultimoTiempoNotificacion) {
+                                dispararNotificacion("🚨 ¡ROBO CONFIRMADO!", "La alarma total ha saltado. Siguiendo ubicación por GPS.");
+                                ultimoTiempoNotificacion = datos.tiempo;
+                            }
+                        }
                     }
                 } else {
-                    document.getElementById('estado-tracker').innerHTML = "Contraseña incorrecta o emisor apagado.";
-                    document.getElementById('estado-tracker').style.color = "red";
+                    document.getElementById('estado-tracker').innerHTML = "Dispositivo sin señal.";
+                    document.getElementById('btnApagarRemoto').style.display = 'none';
                 }
             });
         };
 
-        // 2. FUNCIÓN PARA ENVIAR ORDEN DE APAGADO
+        function dispararNotificacion(titulo, cuerpo) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(titulo, { 
+                    body: cuerpo, 
+                    icon: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png", 
+                    vibrate: [200, 100, 200, 100, 200] 
+                });
+            }
+        }
+
         window.apagarRemoto = function() {
             if(!BUZON_SECRETO) return;
-            // Enviamos el comando de apagado al buzón usando merge:true para no borrar las coordenadas
-            setDoc(doc(db, "dispositivos", BUZON_SECRETO), {
-                comando: "apagar"
-            }, { merge: true })
+            setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "apagar" }, { merge: true })
             .then(() => {
-                console.log("Orden de apagado enviada.");
                 document.getElementById('btnApagarRemoto').innerText = "⏳ Apagando...";
-                setTimeout(() => { document.getElementById('btnApagarRemoto').innerText = "📴 Apagar Alarma a Distancia"; }, 2000);
-            })
-            .catch(e => console.error("Error al enviar orden:", e));
+                setTimeout(() => { document.getElementById('btnApagarRemoto').innerText = "🛑 Desactivar Vigilancia a Distancia"; }, 2000);
+            });
         }
     </script>
 </body>
