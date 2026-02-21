@@ -77,9 +77,53 @@
 
         let BUZON_SECRETO = "";
         let mapa, marcador;
-        let centradoActivo = true;   // arranca centrado
+        let centradoActivo = true;
         let ultimaPosicion = null;
 
+        // =============================================
+        // AUDIO Y VIBRACIÓN CONSTANTE
+        // =============================================
+        let sirenaMonitor = new Audio('https://actions.google.com/sounds/v1/alarms/beeping_alarm.ogg');
+        sirenaMonitor.loop = true;
+        let intervaloVibracion = null;
+        let alarmaActiva = false;
+
+        function iniciarAlarma() {
+            if (alarmaActiva) return;
+            alarmaActiva = true;
+
+            // 1. Iniciar Sonido
+            sirenaMonitor.play().catch(e => console.log("Audio bloqueado por falta de interacción"));
+
+            // 2. Iniciar Vibración Constante
+            if ("vibrate" in navigator) {
+                navigator.vibrate([1000, 500, 1000, 500]); // Patrón largo y claro
+                intervaloVibracion = setInterval(() => {
+                    navigator.vibrate([1000, 500, 1000, 500]);
+                }, 3000); // Renovar el patrón cada 3 segundos
+            }
+        }
+
+        function pararAlarma() {
+            alarmaActiva = false;
+            
+            // 1. Detener Sonido
+            sirenaMonitor.pause();
+            sirenaMonitor.currentTime = 0;
+
+            // 2. Detener Vibración
+            if (intervaloVibracion) {
+                clearInterval(intervaloVibracion);
+                intervaloVibracion = null;
+            }
+            if ("vibrate" in navigator) {
+                navigator.vibrate(0);
+            }
+        }
+
+        // =============================================
+        // CONTROL DEL MAPA
+        // =============================================
         function activarCentrado() {
             centradoActivo = true;
             const btn = document.getElementById('btn-centrar');
@@ -88,43 +132,13 @@
         }
         window.activarCentrado = activarCentrado;
 
-        // =============================================
-        // VIBRACIÓN — robusta para Android Chrome
-        // El truco: llamar vibrate(1) en cada gesto del
-        // usuario para mantener el "permiso" activo.
-        // =============================================
-        let alarmaRunning = false;
-        let vibLoop = null;
-
-        function vibPreload() {
-            // 1ms invisible — desbloquea la API en el contexto actual
-            if ("vibrate" in navigator) navigator.vibrate(1);
-        }
-
-        function iniciarAlarma() {
-            if (alarmaRunning) return;
-            alarmaRunning = true;
-            _vibTick();
-        }
-
-        function _vibTick() {
-            if (!alarmaRunning) return;
-            // Llamada simple de duración larga — más fiable que arrays en Android
-            if ("vibrate" in navigator) navigator.vibrate(900);
-            // Renovar antes de que expire
-            vibLoop = setTimeout(_vibTick, 1100);
-        }
-
-        function pararAlarma() {
-            alarmaRunning = false;
-            if (vibLoop) { clearTimeout(vibLoop); vibLoop = null; }
-            if ("vibrate" in navigator) navigator.vibrate(0);
-        }
-
         window.iniciarSesion = function() {
             BUZON_SECRETO = document.getElementById('inputContrasena').value.trim();
             if (BUZON_SECRETO === "") return alert("La contraseña es obligatoria.");
-            vibPreload();   // desbloquear vibración desde el gesto del login
+            
+            // HACK DE PERMISOS ANDROID: Aprovechamos el clic para desbloquear audio y vibración
+            sirenaMonitor.load();
+            if ("vibrate" in navigator) navigator.vibrate(10);
             
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'block';
@@ -134,12 +148,10 @@
             marcador = L.marker([43.3390, -1.7896]).addTo(mapa);
             L.control.zoom({ position: 'bottomright' }).addTo(mapa);
 
-            // Mostrar botón de centrado y desactivar seguimiento si el usuario mueve el mapa
             document.getElementById('btn-centrar').style.display = 'block';
             mapa.on('dragstart', () => {
                 centradoActivo = false;
-                const btn = document.getElementById('btn-centrar');
-                btn.classList.replace('activo', 'inactivo');
+                document.getElementById('btn-centrar').classList.replace('activo', 'inactivo');
             });
 
             onSnapshot(doc(db, "dispositivos", BUZON_SECRETO), (documento) => {
@@ -188,8 +200,7 @@
                             alertaDiv.style.display = 'block';
                             btnSilenciar.style.display = 'block'; 
                             
-                            // Reproducir alarma (la vibración continua se gestiona dentro de iniciarAlarma)
-                            iniciarAlarma();
+                            iniciarAlarma(); // Lanza sonido y vibración en bucle
                             
                             if (datos.modo === "normal") {
                                 estadoDiv.innerHTML = "🔴 ROBO EN CURSO";
@@ -207,13 +218,14 @@
 
         window.apagarRemoto = function() {
             if(!BUZON_SECRETO) return;
-            vibPreload();
+            // Un toque extra de vibración por si acaso al tocar el botón
+            if ("vibrate" in navigator) navigator.vibrate(10);
             setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "apagar" }, { merge: true });
         }
 
         window.silenciarRemoto = function() {
             if(!BUZON_SECRETO) return;
-            vibPreload();
+            if ("vibrate" in navigator) navigator.vibrate(10);
             setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "silenciar" }, { merge: true });
             pararAlarma();
         }
