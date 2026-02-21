@@ -10,7 +10,7 @@
             text-align: center; 
             padding: 50px; 
             background-color: #f4f4f4;
-            transition: background 0.1s; 
+            transition: background 0.2s; 
         }
         .btn { 
             padding: 20px 40px; 
@@ -30,13 +30,19 @@
         }
         #coordenadas {
             margin-top: 15px;
-            color: #666;
+            font-size: 18px;
+            color: #444;
+            font-weight: bold;
         }
-        /* Clase de CSS para hacer que la pantalla parpadee en rojo cuando suene la alarma */
+        /* Clase para la Fase 1: Aviso */
+        .alerta-amarilla {
+            background-color: #ffcc00 !important;
+        }
+        /* Clase para la Fase 2: Alarma Total */
         .alerta-roja {
             background-color: #ff0000 !important;
             color: white !important;
-            animation: parpadeo 0.5s infinite;
+            animation: parpadeo 0.3s infinite;
         }
         @keyframes parpadeo {
             0% { background-color: #ff0000; }
@@ -50,108 +56,124 @@
     <h1>🚨 Sensor Antirrobo</h1>
     <button class="btn" id="btnActivar" onclick="iniciarVigilancia()">1. Activar Vigilancia</button>
     <p id="estado">Estado: Apagado</p>
-    <p id="coordenadas">GPS: Esperando...</p>
+    <p id="coordenadas">GPS: Apagado (Ahorrando batería)</p>
 
     <script>
         let vigilando = false;
-        let alarmaSonando = false;
+        let nivelAlarma = 0; // 0: Normal, 1: Aviso (Bip), 2: Alarma Total
+        let tiempoUltimoAviso = 0;
         
-        // Cargamos un sonido de alarma (gratuito de Google)
-        let sonidoAlarma = new Audio('https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg');
-        sonidoAlarma.loop = true; // Que suene en bucle hasta que lo apaguemos
+        // Sonidos oficiales de Google (gratuitos)
+        let sonidoAviso = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+        let sonidoAlarma = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
+        sonidoAlarma.loop = true; // La alarma final sonará en bucle
 
-        // Variables para calcular el movimiento exacto
+        // Variables de movimiento
         let lastX = null, lastY = null, lastZ = null;
 
         function iniciarVigilancia() {
-            // Truco para navegadores: Hay que reproducir y pausar el audio al hacer clic 
-            // para que el móvil nos dé permiso de hacerlo sonar luego automáticamente.
-            sonidoAlarma.play().catch(e => console.log("Audio en espera"));
-            sonidoAlarma.pause();
+            // Truco para que el navegador nos deje reproducir audio después sin que el usuario pulse nada
+            sonidoAviso.play().then(() => sonidoAviso.pause()).catch(e => console.log("Audio en espera"));
+            sonidoAlarma.play().then(() => sonidoAlarma.pause()).catch(e => console.log("Audio en espera"));
 
-            // Pedir permiso para sensores (necesario en iPhone)
+            // Permisos de sensores (Obligatorio en iOS)
             if (typeof DeviceMotionEvent.requestPermission === 'function') {
                 DeviceMotionEvent.requestPermission().then(permissionState => {
-                    if (permissionState === 'granted') {
-                        activarSensores();
-                    } else {
-                        alert("Necesitas dar permiso de sensores para que funcione.");
-                    }
+                    if (permissionState === 'granted') activarSensores();
+                    else alert("Necesitas dar permiso de sensores.");
                 }).catch(console.error);
             } else {
-                activarSensores(); // Android
-            }
-
-            // Activar GPS
-            if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(actualizarUbicacion, errorGPS, {
-                    enableHighAccuracy: true
-                });
+                activarSensores(); // En Android entra directo
             }
         }
 
         function activarSensores() {
             vigilando = true;
             document.getElementById('estado').innerText = "🟢 Vigilando... ¡No lo muevas!";
-            document.getElementById('btnActivar').style.display = "none"; // Ocultamos el botón
+            document.getElementById('btnActivar').style.display = "none";
             
             window.addEventListener('devicemotion', (evento) => {
-                if (!vigilando || alarmaSonando) return;
+                if (!vigilando || nivelAlarma === 2) return; // Si ya está sonando la alarma final, dejamos de calcular
 
-                // Usamos la aceleración con gravedad porque funciona en más móviles
                 let acc = evento.accelerationIncludingGravity;
                 if (!acc) return;
 
-                let x = acc.x; 
-                let y = acc.y; 
-                let z = acc.z;
+                let x = acc.x; let y = acc.y; let z = acc.z;
 
-                // Si ya tenemos una lectura anterior, comparamos la diferencia
                 if (lastX !== null) {
-                    let diferenciaX = Math.abs(x - lastX);
-                    let diferenciaY = Math.abs(y - lastY);
-                    let diferenciaZ = Math.abs(z - lastZ);
+                    let diffX = Math.abs(x - lastX);
+                    let diffY = Math.abs(y - lastY);
+                    let diffZ = Math.abs(z - lastZ);
                     
-                    // Sumamos los cambios bruscos
-                    let movimientoTotal = diferenciaX + diferenciaY + diferenciaZ;
+                    let movimientoTotal = diffX + diffY + diffZ;
 
-                    // Si el cambio brusco supera el umbral de 10 (puedes bajarlo a 5 si quieres que sea muy sensible)
+                    // Si detecta un golpe o sacudida fuerte
                     if (movimientoTotal > 12) {
-                        dispararAlarma();
+                        procesarMovimiento();
                     }
                 }
-                
-                // Guardamos la posición actual para compararla en una fracción de segundo
                 lastX = x; lastY = y; lastZ = z;
             });
         }
 
-        function dispararAlarma() {
-            alarmaSonando = true;
+        function procesarMovimiento() {
+            let ahora = Date.now();
+
+            if (nivelAlarma === 0) {
+                // FASE 1: PRIMER MOVIMIENTO DETECTADO
+                nivelAlarma = 1;
+                tiempoUltimoAviso = ahora;
+                
+                sonidoAviso.play(); // Suena el Bip!
+                document.body.classList.add('alerta-amarilla');
+                document.getElementById('estado').innerText = "⚠️ ¡ADVERTENCIA! Se ha detectado movimiento";
+                
+                // En este momento exacto, encendemos el rastreo GPS continuo
+                iniciarRastreoGPS();
+
+            } else if (nivelAlarma === 1) {
+                // FASE 2: SEGUNDO MOVIMIENTO DETECTADO
+                // Esperamos al menos 1.5 segundos desde el aviso para no disparar la alarma con el mismo golpe inicial
+                if (ahora - tiempoUltimoAviso > 1500) {
+                    dispararAlarmaFinal();
+                }
+            }
+        }
+
+        function iniciarRastreoGPS() {
+            document.getElementById('coordenadas').innerText = "📍 GPS: Obteniendo ubicación...";
             
-            // 1. Efecto Visual
+            if (navigator.geolocation) {
+                // watchPosition actualiza constantemente cada vez que el móvil cambia de coordenadas
+                navigator.geolocation.watchPosition(actualizarUbicacion, errorGPS, {
+                    enableHighAccuracy: true,
+                    maximumAge: 0
+                });
+            }
+        }
+
+        function dispararAlarmaFinal() {
+            nivelAlarma = 2;
+            
+            // Efectos visuales y sonoros
+            document.body.classList.remove('alerta-amarilla');
             document.body.classList.add('alerta-roja');
-            document.getElementById('estado').innerText = "🔴 ¡ALERTA! ¡ROBO DETECTADO!";
-            document.getElementById('estado').style.color = "white";
-
-            // 2. Efecto Sonoro
-            sonidoAlarma.play();
-
-            // 3. Notificación (Aquí prepararemos el envío al Dispositivo 2)
-            console.log("Enviando señal de alerta al servidor...");
-            // Más adelante aquí pondremos: Firebase.enviarAlerta(true);
+            document.getElementById('estado').innerText = "🔴 ¡ALERTA! ¡ROBO CONFIRMADO!";
+            
+            sonidoAlarma.volume = 1.0; // Volumen al máximo
+            sonidoAlarma.play(); // Suena la alarma en bucle
         }
 
         function actualizarUbicacion(posicion) {
             let lat = posicion.coords.latitude;
             let lon = posicion.coords.longitude;
-            document.getElementById('coordenadas').innerText = `GPS: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+            document.getElementById('coordenadas').innerText = `📍 Actualizando GPS: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
             
-            // Más adelante aquí pondremos: Firebase.actualizarGPS(lat, lon);
+            // Aquí será donde enviaremos las coordenadas actualizadas a Firebase
         }
 
-        function errorGPS() {
-            document.getElementById('coordenadas').innerText = "GPS: Sin señal";
+        function errorGPS(error) {
+            document.getElementById('coordenadas').innerText = "GPS: Error de señal";
         }
     </script>
 </body>
