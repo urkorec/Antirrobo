@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dispositivo Vigilante - Conectado</title>
+    <title>Dispositivo Vigilante - Alta Precisión</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; transition: background 0.2s; }
         .btn { padding: 20px 30px; font-size: 20px; background-color: #4CAF50; color: white; border: none; border-radius: 10px; cursor: pointer; margin: 10px; box-shadow: 0px 4px 6px rgba(0,0,0,0.2); }
@@ -18,17 +18,18 @@
 <body>
 
     <h1>🚨 Sensor Antirrobo</h1>
+    <div style="color: red; font-size: 14px; margin-bottom: 10px;">⚠️ IMPORTANTE: Mantén la pantalla encendida para que el GPS funcione en tiempo real.</div>
+    
     <button class="btn" id="btnActivar" onclick="iniciarVigilancia()">1. Activar Vigilancia</button>
     <div id="estado">Estado: Apagado</div>
-    <div id="coordenadas">GPS: Apagado</div>
+    <div id="coordenadas">GPS: Esperando activación...</div>
     <button class="btn btn-test" id="btnSimular" onclick="procesarMovimiento()">🛠️ Simular Golpe</button>
 
     <script type="module">
-        // 1. Importamos Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-        // 2. Tu configuración exacta
+        // Tu configuración
         const firebaseConfig = {
             apiKey: "AIzaSyCtStv8wmlLNOhiw0lnc9mzVlQwLXrYdbY",
             authDomain: "antirrobo-457ef.firebaseapp.com",
@@ -38,39 +39,33 @@
             appId: "1:237396778046:web:6da1715323e4581142856f"
         };
 
-        // 3. Inicializamos la base de datos
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- Lógica de la alarma ---
         let vigilando = false;
         let nivelAlarma = 0; 
         let tiempoUltimoAviso = 0;
         let lastX = null, lastY = null, lastZ = null;
         
-        // Coordenadas base (Irun por defecto por si salta la alarma antes de coger GPS)
-        let latActual = 43.3390; 
+        let latActual = 43.3390; // Irun (Solo temporal hasta que pille satélite)
         let lonActual = -1.7896;
 
         let sonidoAviso = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
         let sonidoAlarma = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
         sonidoAlarma.loop = true;
 
-        // Función para enviar datos a la nube
         function enviarDatos() {
             setDoc(doc(db, "dispositivos", "mi_bici"), {
                 latitud: latActual,
                 longitud: lonActual,
                 nivelAlarma: nivelAlarma,
                 tiempo: Date.now()
-            }).then(() => console.log("Datos enviados a Firebase"))
-              .catch(e => console.error("Error al enviar:", e));
+            }).catch(e => console.error("Error Firebase:", e));
         }
 
-        // Exponemos las funciones para que los botones HTML puedan usarlas
         window.iniciarVigilancia = function() {
-            sonidoAviso.play().then(() => sonidoAviso.pause()).catch(e => console.log("Audio en espera"));
-            sonidoAlarma.play().then(() => sonidoAlarma.pause()).catch(e => console.log("Audio en espera"));
+            sonidoAviso.play().then(() => sonidoAviso.pause()).catch(e => console.log("Audio listo"));
+            sonidoAlarma.play().then(() => sonidoAlarma.pause()).catch(e => console.log("Audio listo"));
 
             if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
                 DeviceMotionEvent.requestPermission().then(estado => {
@@ -87,8 +82,8 @@
             document.getElementById('btnActivar').style.display = "none";
             document.getElementById('btnSimular').style.display = "inline-block";
             
-            // Enviamos estado seguro al inicio
-            enviarDatos();
+            // 🚀 CAMBIO CLAVE: Iniciamos el GPS EXACTO desde el segundo 1
+            iniciarRastreoGPS();
             
             window.addEventListener('devicemotion', (evento) => {
                 if (!vigilando || nivelAlarma === 2) return;
@@ -111,28 +106,34 @@
                 sonidoAviso.currentTime = 0; sonidoAviso.play();
                 document.body.classList.add('alerta-amarilla');
                 document.getElementById('estado').innerText = "⚠️ ADVERTENCIA";
-                enviarDatos(); // Avisamos a Firebase
-                iniciarRastreoGPS();
+                enviarDatos(); 
             } else if (nivelAlarma === 1 && (ahora - tiempoUltimoAviso > 1500)) {
                 nivelAlarma = 2;
                 document.body.classList.replace('alerta-amarilla', 'alerta-roja');
                 document.getElementById('estado').innerText = "🔴 ¡ROBO CONFIRMADO!";
                 sonidoAlarma.play();
-                enviarDatos(); // Avisamos a Firebase
+                enviarDatos(); 
             }
         };
 
         function iniciarRastreoGPS() {
-            document.getElementById('coordenadas').innerText = "📍 Buscando GPS...";
+            document.getElementById('coordenadas').innerText = "📍 Buscando satélites (Puede tardar unos segundos)...";
             if (navigator.geolocation) {
+                // 🚀 CAMBIO CLAVE: Forzamos Alta Precisión y descartamos datos viejos (maximumAge: 0)
                 navigator.geolocation.watchPosition((posicion) => {
                     latActual = posicion.coords.latitude;
                     lonActual = posicion.coords.longitude;
-                    document.getElementById('coordenadas').innerText = `📍 GPS: ${latActual.toFixed(4)}, ${lonActual.toFixed(4)}`;
-                    enviarDatos(); // Si el GPS se mueve, actualizamos Firebase
+                    document.getElementById('coordenadas').innerText = `📍 GPS Exacto: ${latActual.toFixed(5)}, ${lonActual.toFixed(5)}`;
+                    enviarDatos(); // Se actualiza en tiempo real en tu mapa
                 }, (error) => {
-                    document.getElementById('coordenadas').innerText = "❌ Error GPS";
-                }, { enableHighAccuracy: true });
+                    document.getElementById('coordenadas').innerText = "❌ Error GPS: " + error.message;
+                }, { 
+                    enableHighAccuracy: true, 
+                    maximumAge: 0, 
+                    timeout: 10000 
+                });
+            } else {
+                document.getElementById('coordenadas').innerText = "❌ Tu dispositivo no soporta GPS.";
             }
         }
     </script>
