@@ -3,191 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dispositivo Vigilante - V2</title>
+    <title>Dispositivo Vigilante - Conectado</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            text-align: center; 
-            padding: 20px; 
-            background-color: #f4f4f4;
-            transition: background 0.2s; 
-        }
-        .btn { 
-            padding: 20px 30px; 
-            font-size: 20px; 
-            background-color: #4CAF50; 
-            color: white; 
-            border: none; 
-            border-radius: 10px; 
-            cursor: pointer; 
-            margin: 10px;
-            box-shadow: 0px 4px 6px rgba(0,0,0,0.2);
-        }
-        .btn-test {
-            background-color: #555;
-            font-size: 16px;
-            padding: 15px 20px;
-            display: none; /* Se mostrará cuando se active la vigilancia */
-        }
-        #estado { 
-            margin-top: 30px; 
-            font-size: 22px; 
-            font-weight: bold; 
-            color: #333;
-            padding: 20px;
-            border-radius: 10px;
-        }
-        #coordenadas {
-            margin-top: 15px;
-            font-size: 16px;
-            color: #444;
-            background: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-        }
-        /* Fases de Alarma */
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; transition: background 0.2s; }
+        .btn { padding: 20px 30px; font-size: 20px; background-color: #4CAF50; color: white; border: none; border-radius: 10px; cursor: pointer; margin: 10px; box-shadow: 0px 4px 6px rgba(0,0,0,0.2); }
+        .btn-test { background-color: #555; font-size: 16px; padding: 15px 20px; display: none; }
+        #estado { margin-top: 30px; font-size: 22px; font-weight: bold; color: #333; padding: 20px; border-radius: 10px; }
+        #coordenadas { margin-top: 15px; font-size: 16px; color: #444; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; }
         .alerta-amarilla { background-color: #ffcc00 !important; }
-        .alerta-roja {
-            background-color: #ff0000 !important;
-            color: white !important;
-            animation: parpadeo 0.3s infinite;
-        }
-        @keyframes parpadeo {
-            0% { background-color: #ff0000; }
-            50% { background-color: #8b0000; }
-            100% { background-color: #ff0000; }
-        }
+        .alerta-roja { background-color: #ff0000 !important; color: white !important; animation: parpadeo 0.3s infinite; }
+        @keyframes parpadeo { 0% { background-color: #ff0000; } 50% { background-color: #8b0000; } 100% { background-color: #ff0000; } }
     </style>
 </head>
 <body>
 
     <h1>🚨 Sensor Antirrobo</h1>
-    
-    <div id="avisoHttps" style="color: red; font-weight: bold; display: none; margin-bottom: 15px;">
-        ⚠️ Estás usando una conexión no segura. El GPS y los sensores podrían no funcionar.
-    </div>
-
     <button class="btn" id="btnActivar" onclick="iniciarVigilancia()">1. Activar Vigilancia</button>
-    
     <div id="estado">Estado: Apagado</div>
-    <div id="coordenadas">GPS: Apagado (Ahorrando batería)</div>
+    <div id="coordenadas">GPS: Apagado</div>
+    <button class="btn btn-test" id="btnSimular" onclick="procesarMovimiento()">🛠️ Simular Golpe</button>
 
-    <button class="btn btn-test" id="btnSimular" onclick="procesarMovimiento()">🛠️ Simular Golpe manual</button>
+    <script type="module">
+        // 1. Importamos Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-    <script>
-        // Mostrar aviso si el archivo se abre localmente (file://) o en http://
-        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-            document.getElementById('avisoHttps').style.display = 'block';
-        }
+        // 2. Tu configuración exacta
+        const firebaseConfig = {
+            apiKey: "AIzaSyCtStv8wmlLNOhiw0lnc9mzVlQwLXrYdbY",
+            authDomain: "antirrobo-457ef.firebaseapp.com",
+            projectId: "antirrobo-457ef",
+            storageBucket: "antirrobo-457ef.firebasestorage.app",
+            messagingSenderId: "237396778046",
+            appId: "1:237396778046:web:6da1715323e4581142856f"
+        };
 
+        // 3. Inicializamos la base de datos
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- Lógica de la alarma ---
         let vigilando = false;
         let nivelAlarma = 0; 
         let tiempoUltimoAviso = 0;
+        let lastX = null, lastY = null, lastZ = null;
         
+        // Coordenadas base (Irun por defecto por si salta la alarma antes de coger GPS)
+        let latActual = 43.3390; 
+        let lonActual = -1.7896;
+
         let sonidoAviso = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
         let sonidoAlarma = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
         sonidoAlarma.loop = true;
 
-        let lastX = null, lastY = null, lastZ = null;
+        // Función para enviar datos a la nube
+        function enviarDatos() {
+            setDoc(doc(db, "dispositivos", "mi_bici"), {
+                latitud: latActual,
+                longitud: lonActual,
+                nivelAlarma: nivelAlarma,
+                tiempo: Date.now()
+            }).then(() => console.log("Datos enviados a Firebase"))
+              .catch(e => console.error("Error al enviar:", e));
+        }
 
-        function iniciarVigilancia() {
-            // Desbloquear audios
-            sonidoAviso.play().then(() => sonidoAviso.pause()).catch(e => console.log("Audio bloqueado temporalmente"));
-            sonidoAlarma.play().then(() => sonidoAlarma.pause()).catch(e => console.log("Audio bloqueado temporalmente"));
+        // Exponemos las funciones para que los botones HTML puedan usarlas
+        window.iniciarVigilancia = function() {
+            sonidoAviso.play().then(() => sonidoAviso.pause()).catch(e => console.log("Audio en espera"));
+            sonidoAlarma.play().then(() => sonidoAlarma.pause()).catch(e => console.log("Audio en espera"));
 
             if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-                DeviceMotionEvent.requestPermission()
-                    .then(estado => {
-                        if (estado === 'granted') activarSensores();
-                        else alert("Permiso de movimiento denegado.");
-                    })
-                    .catch(console.error);
+                DeviceMotionEvent.requestPermission().then(estado => {
+                    if (estado === 'granted') activarSensores();
+                }).catch(console.error);
             } else {
                 activarSensores();
             }
-        }
+        };
 
         function activarSensores() {
             vigilando = true;
-            document.getElementById('estado').innerText = "🟢 Vigilando... ¡No lo muevas!";
+            document.getElementById('estado').innerText = "🟢 Vigilando...";
             document.getElementById('btnActivar').style.display = "none";
-            document.getElementById('btnSimular').style.display = "inline-block"; // Mostramos el botón de prueba
+            document.getElementById('btnSimular').style.display = "inline-block";
+            
+            // Enviamos estado seguro al inicio
+            enviarDatos();
             
             window.addEventListener('devicemotion', (evento) => {
                 if (!vigilando || nivelAlarma === 2) return;
-
-                // Intentar usar aceleración con gravedad, si no, aceleración normal
                 let acc = evento.accelerationIncludingGravity || evento.acceleration;
                 if (!acc || acc.x === null) return;
 
-                let x = acc.x; let y = acc.y; let z = acc.z;
-
                 if (lastX !== null) {
-                    let diffX = Math.abs(x - lastX);
-                    let diffY = Math.abs(y - lastY);
-                    let diffZ = Math.abs(z - lastZ);
-                    
-                    let movimientoTotal = diffX + diffY + diffZ;
-
-                    if (movimientoTotal > 10) { // Umbral de sensibilidad
-                        procesarMovimiento();
-                    }
+                    let diff = Math.abs(acc.x - lastX) + Math.abs(acc.y - lastY) + Math.abs(acc.z - lastZ);
+                    if (diff > 10) window.procesarMovimiento();
                 }
-                lastX = x; lastY = y; lastZ = z;
+                lastX = acc.x; lastY = acc.y; lastZ = acc.z;
             });
         }
 
-        function procesarMovimiento() {
+        window.procesarMovimiento = function() {
             let ahora = Date.now();
-
             if (nivelAlarma === 0) {
-                // FASE 1: AVISO
                 nivelAlarma = 1;
                 tiempoUltimoAviso = ahora;
-                
-                sonidoAviso.currentTime = 0;
-                sonidoAviso.play();
-                
+                sonidoAviso.currentTime = 0; sonidoAviso.play();
                 document.body.classList.add('alerta-amarilla');
-                document.getElementById('estado').innerText = "⚠️ ¡ADVERTENCIA! Movimiento detectado";
-                
+                document.getElementById('estado').innerText = "⚠️ ADVERTENCIA";
+                enviarDatos(); // Avisamos a Firebase
                 iniciarRastreoGPS();
-
-            } else if (nivelAlarma === 1) {
-                // FASE 2: ALARMA (Si han pasado más de 1.5 segundos desde el aviso)
-                if (ahora - tiempoUltimoAviso > 1500) {
-                    dispararAlarmaFinal();
-                }
+            } else if (nivelAlarma === 1 && (ahora - tiempoUltimoAviso > 1500)) {
+                nivelAlarma = 2;
+                document.body.classList.replace('alerta-amarilla', 'alerta-roja');
+                document.getElementById('estado').innerText = "🔴 ¡ROBO CONFIRMADO!";
+                sonidoAlarma.play();
+                enviarDatos(); // Avisamos a Firebase
             }
-        }
+        };
 
         function iniciarRastreoGPS() {
-            document.getElementById('coordenadas').innerText = "📍 GPS: Buscando satélites...";
-            
+            document.getElementById('coordenadas').innerText = "📍 Buscando GPS...";
             if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(
-                    (posicion) => {
-                        let lat = posicion.coords.latitude;
-                        let lon = posicion.coords.longitude;
-                        document.getElementById('coordenadas').innerText = `📍 GPS Actualizado: \nLat: ${lat.toFixed(5)} \nLon: ${lon.toFixed(5)}`;
-                    }, 
-                    (error) => {
-                        document.getElementById('coordenadas').innerText = "❌ Error GPS: " + error.message;
-                    }, 
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                );
-            } else {
-                document.getElementById('coordenadas').innerText = "❌ Tu navegador no soporta GPS.";
+                navigator.geolocation.watchPosition((posicion) => {
+                    latActual = posicion.coords.latitude;
+                    lonActual = posicion.coords.longitude;
+                    document.getElementById('coordenadas').innerText = `📍 GPS: ${latActual.toFixed(4)}, ${lonActual.toFixed(4)}`;
+                    enviarDatos(); // Si el GPS se mueve, actualizamos Firebase
+                }, (error) => {
+                    document.getElementById('coordenadas').innerText = "❌ Error GPS";
+                }, { enableHighAccuracy: true });
             }
-        }
-
-        function dispararAlarmaFinal() {
-            nivelAlarma = 2;
-            document.body.classList.remove('alerta-amarilla');
-            document.body.classList.add('alerta-roja');
-            document.getElementById('estado').innerText = "🔴 ¡ROBO CONFIRMADO!";
-            sonidoAlarma.play();
         }
     </script>
 </body>
