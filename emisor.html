@@ -4,57 +4,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Emisor - Escudo Irun</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin: 0; height: 100vh; overflow: hidden; background-color: #f4f4f4; transition: background 0.3s; }
-        #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a2e; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; }
-        .input-pass { padding: 15px; font-size: 18px; border-radius: 8px; border: none; margin-bottom: 20px; width: 80%; max-width: 300px; text-align: center; }
-        .btn-login { background: #4facfe; color: white; padding: 15px 30px; font-size: 18px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 80%; max-width: 300px; }
+        body { font-family: 'Poppins', sans-serif; text-align: center; margin: 0; height: 100vh; overflow: hidden; background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); color: white; transition: background 0.3s; }
         
-        #app-screen { display: none; padding: 20px; }
-        .btn { padding: 15px 20px; font-size: 18px; color: white; border: none; border-radius: 10px; cursor: pointer; margin: 10px; box-shadow: 0px 4px 6px rgba(0,0,0,0.2); width: 80%; max-width: 300px; }
-        .btn-activar { background-color: #4CAF50; }
-        .btn-detener { background-color: #d9534f; display: none; }
-        .btn-pantalla { background-color: #111; display: none; }
+        /* Pantalla Login */
+        #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; }
+        .box { background: rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); width: 80%; max-width: 350px; }
+        .box h2 { margin-top: 0; font-weight: 800; font-size: 24px; color: #4facfe; }
+        .input-pass { padding: 15px; font-size: 16px; border-radius: 12px; border: none; margin-bottom: 20px; width: 90%; text-align: center; outline: none; font-family: 'Poppins', sans-serif; background: rgba(255,255,255,0.9); }
+        .btn-login { background: linear-gradient(45deg, #4facfe, #00f2fe); color: white; padding: 15px; font-size: 18px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; width: 100%; transition: transform 0.2s; }
+        .btn-login:hover { transform: scale(1.05); }
         
-        .modos-container { background: white; padding: 15px; border-radius: 10px; display: inline-block; text-align: left; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; width: 80%; max-width: 300px;}
-        .modos-container label { display: block; font-size: 16px; margin: 10px 0; cursor: pointer; color: #333;}
+        /* Pantalla Principal */
+        #app-screen { display: none; padding: 20px; height: 100%; box-sizing: border-box; display: none; flex-direction: column; align-items: center; }
+        h1 { font-weight: 800; margin-bottom: 5px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
         
-        #estado { margin-top: 10px; font-size: 20px; font-weight: bold; color: #333; padding: 15px; border-radius: 10px; }
-        #coordenadas { margin-top: 10px; font-size: 14px; color: #444; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; }
-        .alerta-amarilla { background-color: #ffcc00 !important; }
-        .alerta-roja { background-color: #ff0000 !important; color: white !important; animation: parpadeo 0.3s infinite; }
-        @keyframes parpadeo { 0% { background-color: #ff0000; } 50% { background-color: #8b0000; } 100% { background-color: #ff0000; } }
+        .modos-container { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 16px; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin: 20px 0; width: 90%; max-width: 350px; border: 1px solid rgba(255,255,255,0.1); }
+        .modos-container label { display: block; font-size: 16px; margin: 15px 0; cursor: pointer; padding: 10px; border-radius: 8px; transition: background 0.2s; }
+        .modos-container label:hover { background: rgba(255,255,255,0.1); }
+        .modos-container small { color: #aaa; display: block; margin-top: 5px; font-size: 13px; margin-left: 28px;}
         
-        #pantalla-negra { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: black; z-index: 9999; display: none; color: #555; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-direction: column; }
+        .btn { padding: 18px; font-size: 18px; color: white; border: none; border-radius: 12px; cursor: pointer; margin: 10px 0; font-weight: 600; width: 90%; max-width: 350px; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-activar { background: linear-gradient(45deg, #11998e, #38ef7d); box-shadow: 0 4px 15px rgba(56,239,125,0.4); }
+        .btn-activar:active { transform: scale(0.95); }
+        .btn-detener { background: linear-gradient(45deg, #cb2d3e, #ef473a); box-shadow: 0 4px 15px rgba(239,71,58,0.4); display: none; }
+        .btn-pantalla { background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); display: none; }
+        
+        #estado { margin-top: 20px; font-size: 20px; font-weight: 800; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.4); width: 90%; max-width: 350px; backdrop-filter: blur(5px); }
+        #coordenadas { margin-top: 10px; font-size: 13px; color: #ddd; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 8px; width: 90%; max-width: 350px; }
+        
+        /* Alertas */
+        .alerta-amarilla { background: #d4af37 !important; color: #000; }
+        .alerta-roja { background: #8b0000 !important; animation: latido 0.3s infinite alternate; }
+        @keyframes latido { from { background: #ff0000; } to { background: #8b0000; } }
+        
+        #pantalla-negra { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: black; z-index: 9999; display: none; color: #333; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; }
     </style>
 </head>
 <body>
     <div id="login-screen">
-        <h2>🔒 Seguridad del Emisor</h2>
-        <p>Crea una contraseña para esta sesión:</p>
-        <input type="password" id="inputContrasena" class="input-pass" placeholder="Ej: MiBiciSecreta123">
-        <button class="btn-login" onclick="iniciarSesion()">Entrar</button>
+        <div class="box">
+            <h2>🛡️ Escudo Emisor</h2>
+            <p>Protege tu vehículo</p>
+            <input type="password" id="inputContrasena" class="input-pass" placeholder="Tu contraseña secreta">
+            <button class="btn-login" onclick="iniciarSesion()">Desbloquear</button>
+        </div>
     </div>
 
     <div id="app-screen">
         <div id="pantalla-negra" onclick="toqueDesbloqueo()">
-            <div>Pantalla Apagada</div>
-            <div style="font-size:10px; margin-top:10px;">(Toca 3 veces rápido para encender)</div>
+            <div>(Toca 3 veces para despertar)</div>
         </div>
         
-        <h1>🚨 Sensor Antirrobo</h1>
+        <h1>🚨 Antirrobo ACTIVO</h1>
         
         <div class="modos-container" id="selector-modos">
-            <label><input type="radio" name="modoVigilancia" value="normal" checked> 🔵 <b>Modo Normal</b><br><small style="color:#777;">Sigilo total, notifica al 2º toque.</small></label>
-            <label><input type="radio" name="modoVigilancia" value="seguro"> 🔴 <b>Modo Seguro</b><br><small style="color:#777;">Pita al 1º toque, sirena al 2º.</small></label>
+            <label><input type="radio" name="modoVigilancia" value="normal" checked> 🔵 <b>Modo Sigilo (Normal)</b><br><small>Avisa al monitor en silencio sin pitar en la bici.</small></label>
+            <label><input type="radio" name="modoVigilancia" value="seguro"> 🔴 <b>Modo Alarma (Seguro)</b><br><small>Sonido estridente inmediato al moverla.</small></label>
         </div>
 
-        <button class="btn btn-activar" id="btnActivar" onclick="iniciarVigilancia()">🟢 Activar Vigilancia</button>
-        <button class="btn btn-pantalla" id="btnPantalla" onclick="apagarPantalla()">🕶️ Apagar Pantalla</button>
-        <button class="btn btn-detener" id="btnDetener" onclick="detenerVigilancia()">🛑 Desactivar Vigilancia</button>
+        <button class="btn btn-activar" id="btnActivar" onclick="iniciarVigilancia()">Escudar Vehículo</button>
+        <button class="btn btn-pantalla" id="btnPantalla" onclick="apagarPantalla()">🕶️ Oscurecer Pantalla</button>
+        <button class="btn btn-detener" id="btnDetener" onclick="detenerVigilancia()">🛑 Desactivar Escudo</button>
         
-        <div id="estado">Estado: Apagado</div>
-        <div id="coordenadas">GPS: En reposo</div>
+        <div id="estado">⚪ Reposo</div>
+        <div id="coordenadas">GPS: Esperando activación</div>
     </div>
 
     <script type="module">
@@ -74,38 +89,27 @@
         const db = getFirestore(app);
 
         let BUZON_SECRETO = "";
-        let vigilando = false;
-        let nivelAlarma = 0; 
-        let tiempoUltimoAviso = 0;
-        let temporizadorNormal = null;
-        let lastX = null, lastY = null, lastZ = null;
-        let gpsTracker = null;
-        let wakeLock = null;
-        let toquesDesbloqueo = 0;
-        
-        let latActual = 43.3390; 
-        let lonActual = -1.7896;
+        let vigilando = false, nivelAlarma = 0, tiempoUltimoAviso = 0;
+        let temporizadorNormal = null, lastX = null, lastY = null, lastZ = null;
+        let gpsTracker = null, wakeLock = null, toquesDesbloqueo = 0;
+        let latActual = 43.3390, lonActual = -1.7896;
 
-        let sonidoAviso = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
-        let sonidoAlarma = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
+        // NUEVOS SONIDOS MUCHO MÁS ESTRIDENTES
+        let sonidoAviso = new Audio('https://actions.google.com/sounds/v1/alarms/beeping_alarm.ogg');
+        let sonidoAlarma = new Audio('https://actions.google.com/sounds/v1/alarms/fire_alarm_classic.ogg');
         sonidoAlarma.loop = true;
 
         window.iniciarSesion = function() {
             BUZON_SECRETO = document.getElementById('inputContrasena').value.trim();
             if (BUZON_SECRETO === "") return alert("Introduce una contraseña.");
             document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('app-screen').style.display = 'block';
+            document.getElementById('app-screen').style.display = 'flex';
 
             onSnapshot(doc(db, "dispositivos", BUZON_SECRETO), (documento) => {
                 if (documento.exists() && vigilando) {
                     let cmd = documento.data().comando;
-                    if (cmd === "apagar") {
-                        window.detenerVigilancia();
-                        setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true });
-                    } else if (cmd === "silenciar") {
-                        window.silenciarAlarma();
-                        setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true });
-                    }
+                    if (cmd === "apagar") { window.detenerVigilancia(); setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true }); } 
+                    else if (cmd === "silenciar") { window.silenciarAlarma(); setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true }); }
                 }
             });
         };
@@ -114,27 +118,21 @@
 
         function enviarDatos() {
             if(!BUZON_SECRETO) return;
-            setDoc(doc(db, "dispositivos", BUZON_SECRETO), {
-                latitud: latActual, longitud: lonActual, nivelAlarma: nivelAlarma, modo: obtenerModo(), tiempo: Date.now(), activo: vigilando
-            }, { merge: true }).catch(e => console.error(e));
+            setDoc(doc(db, "dispositivos", BUZON_SECRETO), { latitud: latActual, longitud: lonActual, nivelAlarma: nivelAlarma, modo: obtenerModo(), tiempo: Date.now(), activo: vigilando }, { merge: true }).catch(e => console.error(e));
         }
 
-        async function mantenerPantallaEncendida() {
-            try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
-        }
+        async function mantenerPantallaEncendida() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
 
         window.apagarPantalla = function() { document.getElementById('pantalla-negra').style.display = 'flex'; }
 
         window.toqueDesbloqueo = function() {
             toquesDesbloqueo++;
-            if (toquesDesbloqueo >= 3) {
-                document.getElementById('pantalla-negra').style.display = 'none';
-                toquesDesbloqueo = 0;
-            }
+            if (toquesDesbloqueo >= 3) { document.getElementById('pantalla-negra').style.display = 'none'; toquesDesbloqueo = 0; }
             setTimeout(() => { toquesDesbloqueo = 0; }, 2000);
         }
 
         window.iniciarVigilancia = function() {
+            // Desbloqueo de audio obligatorio
             sonidoAviso.play().then(() => sonidoAviso.pause()).catch(() => {});
             sonidoAlarma.play().then(() => sonidoAlarma.pause()).catch(() => {});
 
@@ -146,13 +144,12 @@
         function activarSensores() {
             vigilando = true; nivelAlarma = 0;
             document.getElementById('selector-modos').style.display = "none";
-            document.getElementById('estado').innerText = "🟢 Vigilando (" + obtenerModo().toUpperCase() + ")";
+            document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA";
             document.getElementById('btnActivar').style.display = "none";
-            document.getElementById('btnPantalla').style.display = "inline-block";
-            document.getElementById('btnDetener').style.display = "inline-block";
+            document.getElementById('btnPantalla').style.display = "block";
+            document.getElementById('btnDetener').style.display = "block";
             
-            mantenerPantallaEncendida(); 
-            enviarDatos();
+            mantenerPantallaEncendida(); enviarDatos();
             window.addEventListener('devicemotion', detectarGolpe);
         }
 
@@ -173,108 +170,69 @@
 
             if (modo === "normal") {
                 if (nivelAlarma === 0) {
-                    // MODO NORMAL - 1er Movimiento: Amarillo silencioso 30s
                     nivelAlarma = 1; tiempoUltimoAviso = ahora; 
                     document.body.className = 'alerta-amarilla';
-                    document.getElementById('estado').innerText = "🟡 Alerta Silenciosa (30s)";
+                    document.getElementById('estado').innerText = "🟡 MOVIMIENTO DETECTADO";
                     enviarDatos(); 
                     if(temporizadorNormal) clearTimeout(temporizadorNormal);
                     temporizadorNormal = setTimeout(() => {
-                        if (nivelAlarma === 1) { 
-                            nivelAlarma = 0; document.body.className = '';
-                            document.getElementById('estado').innerText = "🟢 Vigilando (NORMAL)";
-                            enviarDatos();
-                        }
+                        if (nivelAlarma === 1) { nivelAlarma = 0; document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; enviarDatos(); }
                     }, 30000);
                 } else if (nivelAlarma === 1 && (ahora - tiempoUltimoAviso > 2000)) {
-                    // MODO NORMAL - 2do Movimiento: GPS y Seguimiento pero SIN sonido
-                    nivelAlarma = 2; if(temporizadorNormal) clearTimeout(temporizadorNormal); 
-                    dispararAlarmaSilenciosa();
+                    nivelAlarma = 2; if(temporizadorNormal) clearTimeout(temporizadorNormal); dispararAlarmaSilenciosa();
                 }
-
             } else if (modo === "seguro") {
                 if (nivelAlarma === 0) {
-                    // MODO SEGURO - 1er Movimiento: Amarillo + Beep 30s
                     nivelAlarma = 1; tiempoUltimoAviso = ahora;
                     sonidoAviso.currentTime = 0; sonidoAviso.play();
                     document.body.className = 'alerta-amarilla';
-                    document.getElementById('estado').innerText = "🟡 Advertencia Sonora (30s)";
+                    document.getElementById('estado').innerText = "🟡 ADVERTENCIA SONORA";
                     enviarDatos(); 
                     if(temporizadorNormal) clearTimeout(temporizadorNormal);
                     temporizadorNormal = setTimeout(() => {
-                        if (nivelAlarma === 1) { 
-                            nivelAlarma = 0; document.body.className = '';
-                            document.getElementById('estado').innerText = "🟢 Vigilando (SEGURO)";
-                            enviarDatos();
-                        }
+                        if (nivelAlarma === 1) { nivelAlarma = 0; document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; enviarDatos(); }
                     }, 30000);
                 } else if (nivelAlarma === 1 && (ahora - tiempoUltimoAviso > 2000)) {
-                    // MODO SEGURO - 2do Movimiento: GPS y Sirena a tope
-                    nivelAlarma = 2; if(temporizadorNormal) clearTimeout(temporizadorNormal);
-                    dispararAlarmaGeneral();
+                    nivelAlarma = 2; if(temporizadorNormal) clearTimeout(temporizadorNormal); dispararAlarmaGeneral();
                 }
             }
         }
 
-        function dispararAlarmaSilenciosa() {
-            document.body.className = 'alerta-roja';
-            document.getElementById('estado').innerText = "🔴 ¡ROBO SILENCIOSO!";
-            // En modo normal, no hay sonidoAlarma.play()
-            iniciarRastreoGPS(); 
-            enviarDatos(); 
-        }
-
-        function dispararAlarmaGeneral() {
-            document.body.className = 'alerta-roja';
-            document.getElementById('estado').innerText = "🔴 ¡ROBO CONFIRMADO!";
-            sonidoAlarma.play(); // Aquí sí hay sonido
-            iniciarRastreoGPS(); 
-            enviarDatos(); 
-        }
+        function dispararAlarmaSilenciosa() { document.body.className = 'alerta-roja'; document.getElementById('estado').innerText = "🔴 ROBO SILENCIOSO"; iniciarRastreoGPS(); enviarDatos(); }
+        function dispararAlarmaGeneral() { document.body.className = 'alerta-roja'; document.getElementById('estado').innerText = "🔴 SIRENA ACTIVADA"; sonidoAlarma.play(); iniciarRastreoGPS(); enviarDatos(); }
 
         window.silenciarAlarma = function() {
-            nivelAlarma = 0; 
-            if(temporizadorNormal) clearTimeout(temporizadorNormal);
-            sonidoAviso.pause(); sonidoAviso.currentTime = 0;
-            sonidoAlarma.pause(); sonidoAlarma.currentTime = 0;
+            nivelAlarma = 0; if(temporizadorNormal) clearTimeout(temporizadorNormal);
+            sonidoAviso.pause(); sonidoAviso.currentTime = 0; sonidoAlarma.pause(); sonidoAlarma.currentTime = 0;
             if (gpsTracker !== null) { navigator.geolocation.clearWatch(gpsTracker); gpsTracker = null; }
-            document.getElementById('coordenadas').innerText = "GPS: En reposo (esperando)";
-            
-            document.body.className = '';
-            document.getElementById('estado').innerText = "🟢 Vigilando (" + obtenerModo().toUpperCase() + ")";
-            enviarDatos();
+            document.getElementById('coordenadas').innerText = "GPS: En reposo";
+            document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; enviarDatos();
         };
 
         window.detenerVigilancia = function() {
-            vigilando = false; nivelAlarma = 0; 
-            if(temporizadorNormal) clearTimeout(temporizadorNormal);
-            sonidoAviso.pause(); sonidoAviso.currentTime = 0;
-            sonidoAlarma.pause(); sonidoAlarma.currentTime = 0;
-            
+            vigilando = false; nivelAlarma = 0; if(temporizadorNormal) clearTimeout(temporizadorNormal);
+            sonidoAviso.pause(); sonidoAviso.currentTime = 0; sonidoAlarma.pause(); sonidoAlarma.currentTime = 0;
             window.removeEventListener('devicemotion', detectarGolpe);
             if (gpsTracker !== null) { navigator.geolocation.clearWatch(gpsTracker); gpsTracker = null; }
             if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
-            
             document.getElementById('pantalla-negra').style.display = 'none';
-            document.body.className = '';
-            document.getElementById('estado').innerText = "⚪ Sistema Apagado";
+            document.body.className = ''; document.getElementById('estado').innerText = "⚪ SISTEMA APAGADO";
             document.getElementById('coordenadas').innerText = "GPS: Apagado";
-            
-            document.getElementById('selector-modos').style.display = "inline-block";
-            document.getElementById('btnActivar').style.display = "inline-block";
-            document.getElementById('btnPantalla').style.display = "none";
-            document.getElementById('btnDetener').style.display = "none";
+            document.getElementById('selector-modos').style.display = "block";
+            document.getElementById('btnActivar').style.display = "block";
+            document.getElementById('btnPantalla').style.display = "none"; document.getElementById('btnDetener').style.display = "none";
             enviarDatos(); 
         };
 
         function iniciarRastreoGPS() {
-            document.getElementById('coordenadas').innerText = "📍 Activando GPS de precisión...";
+            document.getElementById('coordenadas').innerText = "📍 GPS PRECISO INICIANDO...";
             if (navigator.geolocation) {
+                // GPS MÁS AGRESIVO Y RÁPIDO
                 gpsTracker = navigator.geolocation.watchPosition((posicion) => {
                     latActual = posicion.coords.latitude; lonActual = posicion.coords.longitude;
-                    document.getElementById('coordenadas').innerText = `📍 GPS Activo: ${latActual.toFixed(5)}, ${lonActual.toFixed(5)}`;
+                    document.getElementById('coordenadas').innerText = `📍 Pos: ${latActual.toFixed(5)}, ${lonActual.toFixed(5)}`;
                     enviarDatos();
-                }, (error) => { document.getElementById('coordenadas').innerText = "❌ Error GPS"; }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+                }, (error) => { document.getElementById('coordenadas').innerText = "❌ Error GPS"; }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
             }
         }
     </script>
