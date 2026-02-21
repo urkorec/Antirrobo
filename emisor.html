@@ -233,6 +233,24 @@
                 } else if (datos.comando === "apagar") {
                     window.detenerVigilancia();
                     setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true });
+                } else if (datos.comando === "ubicacion") {
+                    setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true });
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => {
+                                latActual = pos.coords.latitude;
+                                lonActual = pos.coords.longitude;
+                                document.getElementById('coordenadas').innerText = `📍 Pos: ${latActual.toFixed(5)}, ${lonActual.toFixed(5)}`;
+                                setDoc(doc(db, "dispositivos", BUZON_SECRETO), {
+                                    latitud: latActual,
+                                    longitud: lonActual,
+                                    ubicacionActualizada: Date.now()
+                                }, { merge: true });
+                            },
+                            () => { console.warn("GPS puntual fallido"); },
+                            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                        );
+                    }
                 }
             });
         };
