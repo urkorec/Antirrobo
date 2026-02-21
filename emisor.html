@@ -8,7 +8,6 @@
     <style>
         body { font-family: 'Poppins', sans-serif; text-align: center; margin: 0; height: 100vh; overflow: hidden; background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); color: white; transition: background 0.3s; }
         
-        /* Pantalla Login */
         #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; }
         .box { background: rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); width: 80%; max-width: 350px; }
         .box h2 { margin-top: 0; font-weight: 800; font-size: 24px; color: #4facfe; }
@@ -16,7 +15,6 @@
         .btn-login { background: linear-gradient(45deg, #4facfe, #00f2fe); color: white; padding: 15px; font-size: 18px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; width: 100%; transition: transform 0.2s; }
         .btn-login:hover { transform: scale(1.05); }
         
-        /* Pantalla Principal */
         #app-screen { display: none; padding: 20px; height: 100%; box-sizing: border-box; display: none; flex-direction: column; align-items: center; }
         h1 { font-weight: 800; margin-bottom: 5px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
         
@@ -34,7 +32,6 @@
         #estado { margin-top: 20px; font-size: 20px; font-weight: 800; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.4); width: 90%; max-width: 350px; backdrop-filter: blur(5px); }
         #coordenadas { margin-top: 10px; font-size: 13px; color: #ddd; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 8px; width: 90%; max-width: 350px; }
         
-        /* Alertas */
         .alerta-amarilla { background: #d4af37 !important; color: #000; }
         .alerta-roja { background: #8b0000 !important; animation: latido 0.3s infinite alternate; }
         @keyframes latido { from { background: #ff0000; } to { background: #8b0000; } }
@@ -94,7 +91,6 @@
         let gpsTracker = null, wakeLock = null, toquesDesbloqueo = 0;
         let latActual = 43.3390, lonActual = -1.7896;
 
-        // NUEVOS SONIDOS MUCHO MÁS ESTRIDENTES
         let sonidoAviso = new Audio('https://actions.google.com/sounds/v1/alarms/beeping_alarm.ogg');
         let sonidoAlarma = new Audio('https://actions.google.com/sounds/v1/alarms/fire_alarm_classic.ogg');
         sonidoAlarma.loop = true;
@@ -132,9 +128,13 @@
         }
 
         window.iniciarVigilancia = function() {
-            // Desbloqueo de audio obligatorio
             sonidoAviso.play().then(() => sonidoAviso.pause()).catch(() => {});
             sonidoAlarma.play().then(() => sonidoAlarma.pause()).catch(() => {});
+
+            // SOLICITAR PERMISO GPS AL INSTANTE (Antes del robo)
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(()=>{}, ()=>{}, {enableHighAccuracy: true});
+            }
 
             if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
                 DeviceMotionEvent.requestPermission().then(estado => { if (estado === 'granted') activarSensores(); });
@@ -225,14 +225,15 @@
         };
 
         function iniciarRastreoGPS() {
-            document.getElementById('coordenadas').innerText = "📍 GPS PRECISO INICIANDO...";
+            document.getElementById('coordenadas').innerText = "📍 Activando GPS...";
             if (navigator.geolocation) {
-                // GPS MÁS AGRESIVO Y RÁPIDO
+                // GPS LIGERAMENTE MÁS RELAJADO (Actualiza más suave)
                 gpsTracker = navigator.geolocation.watchPosition((posicion) => {
                     latActual = posicion.coords.latitude; lonActual = posicion.coords.longitude;
                     document.getElementById('coordenadas').innerText = `📍 Pos: ${latActual.toFixed(5)}, ${lonActual.toFixed(5)}`;
                     enviarDatos();
-                }, (error) => { document.getElementById('coordenadas').innerText = "❌ Error GPS"; }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+                }, (error) => { document.getElementById('coordenadas').innerText = "❌ Error GPS"; }, 
+                { enableHighAccuracy: true, maximumAge: 2000, timeout: 8000 }); // maximumAge: 3000 estabiliza el mapa
             }
         }
     </script>
