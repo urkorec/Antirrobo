@@ -5,50 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor - Escudo Irun</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body { margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #1a1a2e;}
+        body { margin: 0; padding: 0; font-family: 'Poppins', sans-serif; background-color: #0f172a;}
         
-        #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; background-color: #1a1a2e; }
-        .input-pass { padding: 15px; font-size: 18px; border-radius: 8px; border: none; margin-bottom: 20px; width: 80%; max-width: 300px; text-align: center; }
-        .btn-login { background: #4facfe; color: white; padding: 15px 30px; font-size: 18px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 80%; max-width: 300px; }
+        #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; background: #0f172a; color: white;}
+        .box { background: rgba(255, 255, 255, 0.05); padding: 40px; border-radius: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 80%; max-width: 350px;}
+        .box h2 { margin-top: 0; color: #4facfe; font-weight: 800;}
+        .input-pass { padding: 15px; font-size: 16px; border-radius: 12px; border: none; margin-bottom: 20px; width: 90%; text-align: center; font-family: 'Poppins'; }
+        .btn-login { background: linear-gradient(45deg, #4facfe, #00f2fe); color: white; padding: 15px; font-size: 16px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; width: 100%; transition: transform 0.2s; }
+        .btn-login:hover { transform: scale(1.05); }
         
-        #app-screen { display: none; height: 100vh; width: 100vw; }
-        #mapa { height: 100%; width: 100%; }
+        #app-screen { display: none; height: 100vh; width: 100vw; position: relative;}
+        #mapa { height: 100%; width: 100%; z-index: 1;}
         
-        #panel-info { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.4); text-align: center; width: 85%; max-width: 400px; }
-        h3 { margin: 0 0 5px 0; color: #333; }
-        .modo-badge { display: inline-block; background: #eee; color: #555; padding: 3px 8px; border-radius: 12px; font-size: 12px; margin-bottom: 15px; font-weight: bold;}
-        #estado-tracker { font-size: 16px; color: #555; margin-bottom: 10px; font-weight: bold;}
+        /* Panel Flotante Glassmorphism */
+        #panel-info { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; background: rgba(25, 30, 45, 0.85); backdrop-filter: blur(10px); padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); text-align: center; width: 90%; max-width: 400px; color: white;}
+        h3 { margin: 0 0 10px 0; font-weight: 800; font-size: 18px; color: #fff; }
+        .modo-badge { display: inline-block; background: rgba(255,255,255,0.1); color: #ccc; padding: 5px 12px; border-radius: 12px; font-size: 12px; margin-bottom: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;}
+        #estado-tracker { font-size: 16px; margin-bottom: 15px; font-weight: 600; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3);}
         
-        #alerta { background: red; color: white; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 18px; display: none; animation: parpadeo 0.5s infinite; margin-bottom: 10px; }
-        @keyframes parpadeo { 0% { background-color: #ff0000; } 50% { background-color: #8b0000; } 100% { background-color: #ff0000; } }
+        #alerta { background: linear-gradient(45deg, #cb2d3e, #ef473a); color: white; padding: 15px; border-radius: 12px; font-weight: 800; font-size: 18px; display: none; animation: latido 0.4s infinite alternate; margin-bottom: 15px; box-shadow: 0 0 20px rgba(255,0,0,0.5); }
+        @keyframes latido { from { transform: scale(1); } to { transform: scale(1.02); } }
 
-        .btn-remoto { background: #d9534f; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; display: none; margin-top: 10px; }
-        .btn-remoto:active { background: #c9302c; }
+        .btn-remoto { background: rgba(255,255,255,0.1); color: #ff4d4d; border: 1px solid #ff4d4d; padding: 12px; border-radius: 10px; width: 100%; font-size: 14px; font-weight: 600; cursor: pointer; display: none; margin-top: 10px; transition: all 0.2s;}
+        .btn-remoto:hover { background: #ff4d4d; color: white; }
         
-        .btn-silenciar { background: #f0ad4e; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; display: none; margin-top: 10px; }
-        .btn-silenciar:active { background: #ec971f; }
+        .btn-silenciar { background: linear-gradient(45deg, #f12711, #f5af19); color: white; border: none; padding: 15px; border-radius: 10px; width: 100%; font-size: 15px; font-weight: 800; cursor: pointer; display: none; margin-top: 10px; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(245, 175, 25, 0.4); text-transform: uppercase;}
+        .btn-silenciar:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
     <div id="login-screen">
-        <h2>📍 Acceso al Monitor</h2>
-        <p>Introduce la contraseña de tu dispositivo:</p>
-        <input type="password" id="inputContrasena" class="input-pass" placeholder="Ej: MiBiciSecreta123">
-        <button class="btn-login" onclick="iniciarSesion()">Conectar y Activar Notificaciones</button>
-        <p style="font-size: 12px; color: #aaa; margin-top: 20px; max-width: 300px; text-align: center;">El navegador te pedirá permiso para enviar notificaciones flotantes.</p>
+        <div class="box">
+            <h2>🌍 Monitor Radar</h2>
+            <p>Rastreo y Control Remoto</p>
+            <input type="password" id="inputContrasena" class="input-pass" placeholder="Contraseña secreta">
+            <button class="btn-login" onclick="iniciarSesion()">Conectar Radar</button>
+            <p style="font-size: 11px; color: #777; margin-top: 15px;">Permite el audio para que el monitor suene si hay peligro.</p>
+        </div>
     </div>
 
     <div id="app-screen">
         <div id="panel-info">
-            <h3>📍 Centro de Control</h3>
-            <div id="modo-texto" class="modo-badge">Esperando modo...</div>
-            <div id="estado-tracker">Esperando conexión segura...</div>
+            <h3>🛰️ Radar de Seguridad</h3>
+            <div id="modo-texto" class="modo-badge">Esperando señal...</div>
+            <div id="estado-tracker">Conectando...</div>
             <div id="alerta">¡ROBO DETECTADO!</div>
             
-            <button id="btnSilenciarRemoto" class="btn-silenciar" onclick="silenciarRemoto()">🔕 Silenciar y Seguir Vigilando</button>
-            <button id="btnApagarRemoto" class="btn-remoto" onclick="apagarRemoto()">🛑 Desactivar Vigilancia a Distancia</button>
+            <button id="btnSilenciarRemoto" class="btn-silenciar" onclick="silenciarRemoto()">🔕 Detener Alarma</button>
+            <button id="btnApagarRemoto" class="btn-remoto" onclick="apagarRemoto()">Apagar Sistema Remoto</button>
         </div>
         <div id="mapa"></div>
     </div>
@@ -73,19 +80,28 @@
         let mapa, marcador;
         let ultimoTiempoNotificacion = 0; 
 
+        // NUEVO: Alarma interna en el Monitor para que TE ENTERES SÍ O SÍ
+        let sonidoMonitor = new Audio('https://actions.google.com/sounds/v1/alarms/beeping_alarm.ogg');
+        sonidoMonitor.loop = true;
+
         window.iniciarSesion = function() {
             BUZON_SECRETO = document.getElementById('inputContrasena').value.trim();
             if (BUZON_SECRETO === "") return alert("La contraseña es obligatoria.");
             
             if ("Notification" in window) Notification.requestPermission();
+            
+            // Desbloqueamos el audio en el monitor simulando un toque
+            sonidoMonitor.play().then(() => sonidoMonitor.pause()).catch(e => console.log("Audio no habilitado"));
 
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'block';
 
-            mapa = L.map('mapa').setView([43.3390, -1.7896], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapa);
+            mapa = L.map('mapa', {zoomControl: false}).setView([43.3390, -1.7896], 16);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© CartoDB' }).addTo(mapa);
             marcador = L.marker([43.3390, -1.7896]).addTo(mapa);
-            marcador.bindPopup("Buscando dispositivo...").openPopup();
+            
+            // Movemos los controles de zoom abajo
+            L.control.zoom({ position: 'bottomright' }).addTo(mapa);
 
             onSnapshot(doc(db, "dispositivos", BUZON_SECRETO), (documento) => {
                 if (documento.exists()) {
@@ -93,8 +109,8 @@
                     let nuevaPosicion = new L.LatLng(datos.latitud, datos.longitud);
                     marcador.setLatLng(nuevaPosicion);
                     
-                    // ESTO CENTRA Y SIGUE AL MARCADOR AUTOMÁTICAMENTE:
-                    mapa.setView(nuevaPosicion, mapa.getZoom(), {animate: true});
+                    // REPOSICIONAMIENTO MÁS FLUIDO Y RÁPIDO
+                    mapa.setView(nuevaPosicion, 17, {animate: true, duration: 0.5});
 
                     let modoDiv = document.getElementById('modo-texto');
                     let estadoDiv = document.getElementById('estado-tracker');
@@ -102,64 +118,61 @@
                     let btnDesactivar = document.getElementById('btnApagarRemoto');
                     let btnSilenciar = document.getElementById('btnSilenciarRemoto');
 
-                    if(datos.modo === "normal") modoDiv.innerHTML = "🔵 Modo Normal";
-                    else if(datos.modo === "seguro") modoDiv.innerHTML = "🔴 Modo Seguro";
+                    if(datos.modo === "normal") modoDiv.innerHTML = "🔵 Modo Sigilo";
+                    else if(datos.modo === "seguro") modoDiv.innerHTML = "🔴 Modo Alarma";
 
                     if (!datos.activo) {
-                        estadoDiv.innerHTML = "Estado: ⚪ Sistema Apagado";
-                        estadoDiv.style.color = "gray";
+                        estadoDiv.innerHTML = "⚪ Sistema Apagado";
+                        estadoDiv.style.color = "#888";
                         alertaDiv.style.display = 'none';
                         btnDesactivar.style.display = 'none'; 
                         btnSilenciar.style.display = 'none';
-                        marcador.bindPopup("Dispositivo en reposo").closePopup();
+                        sonidoMonitor.pause(); // Callamos el monitor
                     } else {
                         btnDesactivar.style.display = 'block'; 
 
                         if (datos.nivelAlarma === 0) {
-                            estadoDiv.innerHTML = "Estado: 🟢 Vigilando (Seguro)";
-                            estadoDiv.style.color = "green";
+                            estadoDiv.innerHTML = "🟢 Seguro y Vigilando";
+                            estadoDiv.style.color = "#4ade80";
                             alertaDiv.style.display = 'none';
                             btnSilenciar.style.display = 'none';
-                            marcador.bindPopup("Bici Segura").closePopup();
+                            sonidoMonitor.pause(); // Callamos el monitor
                         
                         } else if (datos.nivelAlarma === 1) {
                             alertaDiv.style.display = 'none';
                             btnSilenciar.style.display = 'block'; 
+                            sonidoMonitor.pause(); // No pitamos en nivel 1
                             
                             if (datos.modo === "normal") {
-                                estadoDiv.innerHTML = "Estado: 🟡 Alerta silenciosa (Esperando 30s)";
-                                estadoDiv.style.color = "orange";
-                                marcador.bindPopup("Movimiento silencioso").openPopup();
+                                estadoDiv.innerHTML = "🟡 Movimiento Detectado";
+                                estadoDiv.style.color = "#facc15";
                             } else if (datos.modo === "seguro") {
-                                estadoDiv.innerHTML = "Estado: 🟡 ¡Advertencia Sonora! (Esperando 30s)";
-                                estadoDiv.style.color = "orange";
-                                marcador.bindPopup("Advertencia activa").openPopup();
+                                estadoDiv.innerHTML = "🟡 Emitiendo Advertencia";
+                                estadoDiv.style.color = "#facc15";
                             }
-                            // Ya no hay notificaciones flotantes en el Nivel 1.
-
                         } else if (datos.nivelAlarma === 2) {
                             alertaDiv.style.display = 'block';
                             btnSilenciar.style.display = 'block'; 
                             
-                            // DISPARAMOS NOTIFICACIONES FLOTANTES SOLO EN NIVEL 2
+                            // DISPARAMOS EL SONIDO EN TU PROPIO MONITOR SÍ O SÍ
+                            sonidoMonitor.play().catch(e => console.log("Navegador bloquea audio automático"));
+                            
                             if (datos.modo === "normal") {
-                                estadoDiv.innerHTML = "Estado: 🔴 ROBO SILENCIOSO";
-                                estadoDiv.style.color = "red";
-                                alertaDiv.innerHTML = "¡ROBO SILENCIOSO EN CURSO!";
-                                marcador.bindPopup("<b>¡LA BICI SE MUEVE! (Sin sonido)</b>").openPopup();
+                                estadoDiv.innerHTML = "🔴 ROBO EN CURSO";
+                                estadoDiv.style.color = "#f87171";
+                                alertaDiv.innerHTML = "¡BICI EN MOVIMIENTO! (Sigilo)";
                                 
                                 if (datos.tiempo !== ultimoTiempoNotificacion) {
-                                    dispararNotificacion("⚠️ ¡ROBO SILENCIOSO!", "La bici se está moviendo. Rastreando ubicación en secreto.");
+                                    dispararNotificacion("⚠️ ¡ROBO SILENCIOSO!", "Persiguiendo objetivo por GPS.");
                                     ultimoTiempoNotificacion = datos.tiempo;
                                 }
                             } else {
-                                estadoDiv.innerHTML = "Estado: 🔴 ALARMA SONANDO";
-                                estadoDiv.style.color = "red";
+                                estadoDiv.innerHTML = "🔴 ALARMA SONANDO";
+                                estadoDiv.style.color = "#f87171";
                                 alertaDiv.innerHTML = "¡ROBO DETECTADO!";
-                                marcador.bindPopup("<b>¡EL DISPOSITIVO ESTÁ AQUÍ!</b>").openPopup();
                                 
                                 if (datos.tiempo !== ultimoTiempoNotificacion) {
-                                    dispararNotificacion("🚨 ¡ROBO CONFIRMADO!", "La alarma total ha saltado. Siguiendo ubicación por GPS.");
+                                    dispararNotificacion("🚨 ¡ROBO CONFIRMADO!", "La alarma total ha saltado.");
                                     ultimoTiempoNotificacion = datos.tiempo;
                                 }
                             }
@@ -169,35 +182,31 @@
                     document.getElementById('estado-tracker').innerHTML = "Dispositivo sin señal.";
                     document.getElementById('btnApagarRemoto').style.display = 'none';
                     document.getElementById('btnSilenciarRemoto').style.display = 'none';
+                    sonidoMonitor.pause();
                 }
             });
         };
 
         function dispararNotificacion(titulo, cuerpo) {
             if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(titulo, { 
-                    body: cuerpo, 
-                    icon: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png", 
-                    vibrate: [200, 100, 200, 100, 200] 
-                });
+                new Notification(titulo, { body: cuerpo, icon: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png", vibrate: [200, 100, 200] });
             }
         }
 
         window.apagarRemoto = function() {
             if(!BUZON_SECRETO) return;
-            setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "apagar" }, { merge: true })
-            .then(() => {
+            setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "apagar" }, { merge: true }).then(() => {
                 document.getElementById('btnApagarRemoto').innerText = "⏳ Apagando...";
-                setTimeout(() => { document.getElementById('btnApagarRemoto').innerText = "🛑 Desactivar Vigilancia a Distancia"; }, 2000);
+                setTimeout(() => { document.getElementById('btnApagarRemoto').innerText = "Apagar Sistema Remoto"; }, 2000);
             });
         }
 
         window.silenciarRemoto = function() {
             if(!BUZON_SECRETO) return;
-            setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "silenciar" }, { merge: true })
-            .then(() => {
-                document.getElementById('btnSilenciarRemoto').innerText = "⏳ Silenciando...";
-                setTimeout(() => { document.getElementById('btnSilenciarRemoto').innerText = "🔕 Silenciar y Seguir Vigilando"; }, 2000);
+            setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "silenciar" }, { merge: true }).then(() => {
+                document.getElementById('btnSilenciarRemoto').innerText = "⏳ Enviando orden...";
+                sonidoMonitor.pause();
+                setTimeout(() => { document.getElementById('btnSilenciarRemoto').innerText = "🔕 Detener Alarma"; }, 2000);
             });
         }
     </script>
