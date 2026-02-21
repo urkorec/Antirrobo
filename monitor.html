@@ -29,6 +29,11 @@
         .botones-container { display: flex; gap: 8px; justify-content: space-between; display: none; }
         .btn-remoto { flex: 1; background: rgba(255,255,255,0.1); color: #ff4d4d; border: 1px solid #ff4d4d; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer;}
         .btn-silenciar { flex: 1; background: linear-gradient(45deg, #f12711, #f5af19); color: white; border: none; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; text-transform: uppercase;}
+
+        #btn-centrar { position: absolute; bottom: 90px; right: 15px; z-index: 1000; width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer; font-size: 20px; display: none; box-shadow: 0 3px 10px rgba(0,0,0,0.4); transition: background 0.2s, transform 0.15s; }
+        #btn-centrar.activo   { background: #4facfe; }
+        #btn-centrar.inactivo { background: rgba(40,50,70,0.92); border: 2px solid rgba(255,255,255,0.25); }
+        #btn-centrar:active   { transform: scale(0.9); }
     </style>
 </head>
 <body>
@@ -53,6 +58,7 @@
                 <button id="btnApagarRemoto" class="btn-remoto" onclick="apagarRemoto()">🛑 Apagar</button>
             </div>
         </div>
+        <button id="btn-centrar" class="activo" onclick="activarCentrado()">📍</button>
         <div id="mapa"></div>
     </div>
 
@@ -71,6 +77,16 @@
 
         let BUZON_SECRETO = "";
         let mapa, marcador;
+        let centradoActivo = true;   // arranca centrado
+        let ultimaPosicion = null;
+
+        function activarCentrado() {
+            centradoActivo = true;
+            const btn = document.getElementById('btn-centrar');
+            btn.classList.replace('inactivo', 'activo');
+            if (ultimaPosicion) mapa.setView(ultimaPosicion, 17, {animate: true, duration: 0.8});
+        }
+        window.activarCentrado = activarCentrado;
 
         // --- Vibración (el sonido lo emite el emisor) ---
         let alarmaRunning = false;
@@ -106,12 +122,21 @@
             marcador = L.marker([43.3390, -1.7896]).addTo(mapa);
             L.control.zoom({ position: 'bottomright' }).addTo(mapa);
 
+            // Mostrar botón de centrado y desactivar seguimiento si el usuario mueve el mapa
+            document.getElementById('btn-centrar').style.display = 'block';
+            mapa.on('dragstart', () => {
+                centradoActivo = false;
+                const btn = document.getElementById('btn-centrar');
+                btn.classList.replace('activo', 'inactivo');
+            });
+
             onSnapshot(doc(db, "dispositivos", BUZON_SECRETO), (documento) => {
                 if (documento.exists()) {
                     let datos = documento.data();
                     let nuevaPosicion = new L.LatLng(datos.latitud, datos.longitud);
+                    ultimaPosicion = nuevaPosicion;
                     marcador.setLatLng(nuevaPosicion);
-                    mapa.setView(nuevaPosicion, 17, {animate: true, duration: 0.8});
+                    if (centradoActivo) mapa.setView(nuevaPosicion, 17, {animate: true, duration: 0.8});
 
                     let modoDiv = document.getElementById('modo-texto');
                     let estadoDiv = document.getElementById('estado-tracker');
