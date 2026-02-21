@@ -21,12 +21,12 @@
         .modos-container label { display: block; font-size: 16px; margin: 15px 0; cursor: pointer; padding: 10px; border-radius: 8px; transition: background 0.2s; }
         .modos-container small { color: #aaa; display: block; margin-top: 5px; font-size: 13px; margin-left: 28px;}
         
-        .btn { padding: 18px; font-size: 18px; color: white; border: none; border-radius: 12px; cursor: pointer; margin: 10px 0; font-weight: 600; width: 90%; max-width: 350px; text-transform: uppercase; letter-spacing: 1px; }
-        .btn-activar { background: linear-gradient(45deg, #11998e, #38ef7d); box-shadow: 0 4px 15px rgba(56,239,125,0.4); }
-        .btn-detener { background: linear-gradient(45deg, #cb2d3e, #ef473a); box-shadow: 0 4px 15px rgba(239,71,58,0.4); display: none; }
+        .btn { padding: 18px; font-size: 18px; color: white; border: none; border-radius: 12px; cursor: pointer; margin: 10px 0; font-weight: 600; width: 90%; max-width: 350px; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-activar  { background: linear-gradient(45deg, #11998e, #38ef7d); box-shadow: 0 4px 15px rgba(56,239,125,0.4); }
+        .btn-detener  { background: linear-gradient(45deg, #cb2d3e, #ef473a); box-shadow: 0 4px 15px rgba(239,71,58,0.4); display: none; }
         .btn-pantalla { background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); display: none; }
-        .btn-simular { background: rgba(243, 156, 18, 0.8); border: 2px dashed #f1c40f; display: none; }
-        
+        .btn-simular  { background: rgba(243, 156, 18, 0.8); border: 2px dashed #f1c40f; display: none; }
+
         #estado { margin-top: 20px; font-size: 20px; font-weight: 800; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.4); width: 90%; max-width: 350px; backdrop-filter: blur(5px); }
         #coordenadas { margin-top: 10px; font-size: 13px; color: #ddd; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 8px; width: 90%; max-width: 350px; }
         
@@ -55,14 +55,14 @@
         <h1>🚨 Antirrobo ACTIVO</h1>
         
         <div class="modos-container" id="selector-modos">
-            <label><input type="radio" name="modoVigilancia" value="normal" checked> 🔵 <b>Modo Sigilo (Normal)</b><br><small>Avisa al monitor y Telegram en silencio.</small></label>
+            <label><input type="radio" name="modoVigilancia" value="normal" checked> 🔵 <b>Modo Sigilo (Normal)</b><br><small>Avisa al monitor en silencio.</small></label>
             <label><input type="radio" name="modoVigilancia" value="seguro"> 🔴 <b>Modo Alarma (Seguro)</b><br><small>Sonido estridente al moverla.</small></label>
         </div>
 
-        <button class="btn btn-activar" id="btnActivar" onclick="iniciarVigilancia()">Escudar Vehículo</button>
-        <button class="btn btn-simular" id="btnSimular" onclick="simularMovimiento()">👋 Simular Movimiento</button>
+        <button class="btn btn-activar"  id="btnActivar"  onclick="iniciarVigilancia()">Escudar Vehículo</button>
+        <button class="btn btn-simular"  id="btnSimular"  onclick="simularMovimiento()">👋 Simular Movimiento</button>
         <button class="btn btn-pantalla" id="btnPantalla" onclick="apagarPantalla()">🕶️ Oscurecer Pantalla</button>
-        <button class="btn btn-detener" id="btnDetener" onclick="detenerVigilancia()">🛑 Desactivar Escudo</button>
+        <button class="btn btn-detener"  id="btnDetener"  onclick="detenerVigilancia()">🛑 Desactivar Escudo</button>
         
         <div id="estado">⚪ Reposo</div>
         <div id="coordenadas">GPS: Esperando activación</div>
@@ -71,23 +71,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
-
-        // ==========================================
-        // 🤖 CONFIGURACIÓN DE TELEGRAM
-        // ==========================================
-        const TELEGRAM_TOKEN = "8565258420:AAHB5CHbTJChcFvyW5FMiZ2Jl_tpnSDM8Ho"; 
-        const TELEGRAM_CHAT_ID = "1156363611";
-
-        function avisarTelegram(modo) {
-            if (TELEGRAM_TOKEN === "8565258420:AAHB5CHbTJChcFvyW5FMiZ2Jl_tpnSDM8Ho" || !TELEGRAM_CHAT_ID) return;
-            
-            let texto = "🚨 ¡ATENCIÓN! ROBO DETECTADO 🚨\n\nTu bicicleta está en movimiento.";
-            if (modo === "normal") texto += "\n🤫 (Modo Sigilo: El ladrón no sabe que lo estás viendo).";
-            
-            const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${encodeURIComponent(texto)}`;
-            fetch(url).catch(e => console.log("Error enviando Telegram:", e));
-        }
-        // ==========================================
 
         const firebaseConfig = {
             apiKey: "AIzaSyCtStv8wmlLNOhiw0lnc9mzVlQwLXrYdbY",
@@ -98,70 +81,193 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // =============================================
+        // TELEGRAM — pon aquí tu token y chat_id
+        // =============================================
+        const TELEGRAM_TOKEN   = "PON_AQUI_TU_TOKEN";    // ej: 7123456789:AAFxxxxxx
+        const TELEGRAM_CHAT_ID = "PON_AQUI_TU_CHAT_ID";  // ej: 123456789
+
+        let telegramEnviado = false; // evita spam si la alarma persiste
+
+        async function enviarTelegram(mensaje) {
+            if (telegramEnviado) return;
+            telegramEnviado = true;
+            try {
+                await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: mensaje })
+                });
+            } catch(e) {
+                console.error("Error enviando Telegram:", e);
+            }
+        }
+        // =============================================
+
         let BUZON_SECRETO = "";
         let vigilando = false, nivelAlarma = 0, tiempoUltimoAviso = 0;
         let temporizadorNormal = null, lastX = null, lastY = null, lastZ = null;
         let gpsTracker = null, wakeLock = null, toquesDesbloqueo = 0;
         let latActual = 43.3390, lonActual = -1.7896;
 
-        let sonidoAviso = new Audio('https://actions.google.com/sounds/v1/alarms/beeping_alarm.ogg');
-        let sonidoAlarma = new Audio('https://actions.google.com/sounds/v1/alarms/fire_alarm_classic.ogg');
-        sonidoAlarma.loop = true;
+        // =============================================
+        // AUDIO: Alarma de vehículo multi-fase
+        // =============================================
+        let audioCtx = null;
+        let alarmaRunning = false;
+        let alarmaTimeout = null;
+
+        function getAudioCtx() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            return audioCtx;
+        }
+
+        function playAviso() {
+            const ctx = getAudioCtx();
+            [0, 200, 400].forEach(delay => {
+                setTimeout(() => {
+                    const osc = ctx.createOscillator(); const g = ctx.createGain();
+                    osc.connect(g); g.connect(ctx.destination);
+                    osc.type = 'sine'; osc.frequency.value = 1050;
+                    g.gain.setValueAtTime(0.5, ctx.currentTime);
+                    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+                    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.15);
+                }, delay);
+            });
+        }
+
+        function iniciarAlarma() {
+            if (alarmaRunning) return;
+            alarmaRunning = true;
+
+            const ctx = getAudioCtx();
+            const comp = ctx.createDynamicsCompressor();
+            comp.threshold.value = -4; comp.knee.value = 6; comp.ratio.value = 10;
+            comp.connect(ctx.destination);
+
+            function faseA(cb) {
+                let i = 0;
+                function chirp() {
+                    if (!alarmaRunning) return;
+                    const t = ctx.currentTime;
+                    const osc1 = ctx.createOscillator(); const g1 = ctx.createGain();
+                    osc1.type = 'sawtooth';
+                    osc1.frequency.setValueAtTime(900, t);
+                    osc1.frequency.linearRampToValueAtTime(1400, t + 0.18);
+                    g1.gain.setValueAtTime(0.55, t);
+                    g1.gain.linearRampToValueAtTime(0, t + 0.22);
+                    osc1.connect(g1); g1.connect(comp);
+                    osc1.start(t); osc1.stop(t + 0.22);
+                    i++;
+                    if (i < 6) alarmaTimeout = setTimeout(chirp, 230);
+                    else alarmaTimeout = setTimeout(cb, 300);
+                }
+                chirp();
+            }
+
+            function faseB(cb) {
+                let i = 0;
+                function wail() {
+                    if (!alarmaRunning) return;
+                    const t = ctx.currentTime;
+                    const osc = ctx.createOscillator(); const g = ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(600, t);
+                    osc.frequency.linearRampToValueAtTime(1100, t + 0.35);
+                    osc.frequency.linearRampToValueAtTime(600, t + 0.70);
+                    g.gain.setValueAtTime(0.45, t);
+                    g.gain.linearRampToValueAtTime(0, t + 0.75);
+                    osc.connect(g); g.connect(comp);
+                    osc.start(t); osc.stop(t + 0.75);
+                    i++;
+                    if (i < 4) alarmaTimeout = setTimeout(wail, 800);
+                    else alarmaTimeout = setTimeout(cb, 600);
+                }
+                wail();
+            }
+
+            function faseC(cb) {
+                if (!alarmaRunning) return;
+                const t = ctx.currentTime;
+                const osc = ctx.createOscillator(); const g = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(1500, t);
+                osc.frequency.exponentialRampToValueAtTime(400, t + 1.2);
+                g.gain.setValueAtTime(0.6, t);
+                g.gain.linearRampToValueAtTime(0, t + 1.3);
+                osc.connect(g); g.connect(comp);
+                osc.start(t); osc.stop(t + 1.3);
+                alarmaTimeout = setTimeout(cb, 1500);
+            }
+
+            function ciclo() {
+                if (!alarmaRunning) return;
+                faseA(() => { if (!alarmaRunning) return; faseB(() => { if (!alarmaRunning) return; faseC(() => { if (alarmaRunning) alarmaTimeout = setTimeout(ciclo, 400); }); }); });
+            }
+            ciclo();
+        }
+
+        function pararAlarma() {
+            alarmaRunning = false;
+            if (alarmaTimeout) { clearTimeout(alarmaTimeout); alarmaTimeout = null; }
+        }
+
+        function obtenerModo() {
+            return document.querySelector('input[name="modoVigilancia"]:checked').value;
+        }
 
         window.iniciarSesion = function() {
             BUZON_SECRETO = document.getElementById('inputContrasena').value.trim();
-            if (BUZON_SECRETO === "") return alert("Introduce una contraseña.");
+            if (BUZON_SECRETO === "") return alert("La contraseña es obligatoria.");
             document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('app-screen').style.display = 'flex';
+            document.getElementById('app-screen').style.display  = 'flex';
 
+            // Escuchar comandos remotos del monitor
             onSnapshot(doc(db, "dispositivos", BUZON_SECRETO), (documento) => {
-                if (documento.exists() && vigilando) {
-                    let cmd = documento.data().comando;
-                    if (cmd === "apagar") { window.detenerVigilancia(); setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true }); } 
-                    else if (cmd === "silenciar") { window.silenciarAlarma(); setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true }); }
+                if (!documento.exists()) return;
+                const datos = documento.data();
+                if (datos.comando === "silenciar" && nivelAlarma === 2) {
+                    window.silenciarAlarma();
+                    setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true });
+                } else if (datos.comando === "apagar") {
+                    window.detenerVigilancia();
+                    setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true });
                 }
             });
         };
 
-        function obtenerModo() { return document.querySelector('input[name="modoVigilancia"]:checked').value; }
-
         function enviarDatos() {
-            if(!BUZON_SECRETO) return;
-            setDoc(doc(db, "dispositivos", BUZON_SECRETO), { latitud: latActual, longitud: lonActual, nivelAlarma: nivelAlarma, modo: obtenerModo(), tiempo: Date.now(), activo: vigilando }, { merge: true });
+            if (!BUZON_SECRETO) return;
+            setDoc(doc(db, "dispositivos", BUZON_SECRETO), { latitud: latActual, longitud: lonActual, nivelAlarma, modo: obtenerModo(), tiempo: Date.now(), activo: vigilando }, { merge: true });
         }
 
         async function mantenerPantallaEncendida() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
 
-        window.apagarPantalla = function() { document.getElementById('pantalla-negra').style.display = 'flex'; }
-
+        window.apagarPantalla  = function() { document.getElementById('pantalla-negra').style.display = 'flex'; };
         window.toqueDesbloqueo = function() {
             toquesDesbloqueo++;
             if (toquesDesbloqueo >= 3) { document.getElementById('pantalla-negra').style.display = 'none'; toquesDesbloqueo = 0; }
             setTimeout(() => { toquesDesbloqueo = 0; }, 2000);
-        }
+        };
 
         window.iniciarVigilancia = function() {
-            sonidoAviso.play().then(() => sonidoAviso.pause()).catch(e => console.log(e));
-            sonidoAlarma.play().then(() => sonidoAlarma.pause()).catch(e => console.log(e));
-
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(()=>{}, ()=>{}, {enableHighAccuracy: true});
-            }
-
+            getAudioCtx();
+            if (navigator.geolocation) navigator.geolocation.getCurrentPosition(()=>{}, ()=>{}, {enableHighAccuracy: true});
             if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-                DeviceMotionEvent.requestPermission().then(estado => { if (estado === 'granted') activarSensores(); });
+                DeviceMotionEvent.requestPermission().then(e => { if (e === 'granted') activarSensores(); });
             } else { activarSensores(); }
         };
 
         function activarSensores() {
             vigilando = true; nivelAlarma = 0;
+            telegramEnviado = false; // resetear al activar vigilancia
             document.getElementById('selector-modos').style.display = "none";
             document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA";
-            document.getElementById('btnActivar').style.display = "none";
-            document.getElementById('btnSimular').style.display = "block";
+            document.getElementById('btnActivar').style.display  = "none";
+            document.getElementById('btnSimular').style.display  = "block";
             document.getElementById('btnPantalla').style.display = "block";
-            document.getElementById('btnDetener').style.display = "block";
-            
+            document.getElementById('btnDetener').style.display  = "block";
             mantenerPantallaEncendida(); enviarDatos();
             window.addEventListener('devicemotion', detectarGolpe);
         }
@@ -184,88 +290,91 @@
         function procesarMovimiento(forzar) {
             let ahora = Date.now();
             let modo = obtenerModo();
-
             if (modo === "normal") {
                 if (nivelAlarma === 0) {
-                    nivelAlarma = 1; tiempoUltimoAviso = ahora; 
+                    nivelAlarma = 1; tiempoUltimoAviso = ahora;
                     document.body.className = 'alerta-amarilla';
                     document.getElementById('estado').innerText = "🟡 MOVIMIENTO DETECTADO";
-                    enviarDatos(); 
-                    if(temporizadorNormal) clearTimeout(temporizadorNormal);
+                    enviarDatos();
+                    if (temporizadorNormal) clearTimeout(temporizadorNormal);
                     temporizadorNormal = setTimeout(() => {
                         if (nivelAlarma === 1) { nivelAlarma = 0; document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; enviarDatos(); }
                     }, 30000);
                 } else if (nivelAlarma === 1 && (forzar || ahora - tiempoUltimoAviso > 2000)) {
-                    nivelAlarma = 2; if(temporizadorNormal) clearTimeout(temporizadorNormal); dispararAlarmaSilenciosa();
+                    nivelAlarma = 2; if (temporizadorNormal) clearTimeout(temporizadorNormal); dispararAlarmaSilenciosa();
                 }
             } else if (modo === "seguro") {
                 if (nivelAlarma === 0) {
                     nivelAlarma = 1; tiempoUltimoAviso = ahora;
-                    sonidoAviso.play();
+                    playAviso();
                     document.body.className = 'alerta-amarilla';
                     document.getElementById('estado').innerText = "🟡 ADVERTENCIA SONORA";
-                    enviarDatos(); 
-                    if(temporizadorNormal) clearTimeout(temporizadorNormal);
+                    enviarDatos();
+                    if (temporizadorNormal) clearTimeout(temporizadorNormal);
                     temporizadorNormal = setTimeout(() => {
                         if (nivelAlarma === 1) { nivelAlarma = 0; document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; enviarDatos(); }
                     }, 30000);
                 } else if (nivelAlarma === 1 && (forzar || ahora - tiempoUltimoAviso > 2000)) {
-                    nivelAlarma = 2; if(temporizadorNormal) clearTimeout(temporizadorNormal); dispararAlarmaGeneral();
+                    nivelAlarma = 2; if (temporizadorNormal) clearTimeout(temporizadorNormal); dispararAlarmaGeneral();
                 }
             }
         }
 
-        function dispararAlarmaSilenciosa() { 
-            document.body.className = 'alerta-roja'; 
-            document.getElementById('estado').innerText = "🔴 ROBO SILENCIOSO"; 
-            iniciarRastreoGPS(); 
-            enviarDatos(); 
-            avisarTelegram("normal"); // Dispara Telegram
+        function dispararAlarmaSilenciosa() {
+            document.body.className = 'alerta-roja';
+            document.getElementById('estado').innerText = "🔴 ROBO SILENCIOSO";
+            iniciarRastreoGPS(); enviarDatos();
+            // Enviar alerta Telegram con ubicación
+            const mapsUrl = `https://maps.google.com/?q=${latActual},${lonActual}`;
+            enviarTelegram(`🚨 ¡ALERTA ROBO! Bici en movimiento (modo silencio).\n📍 Última ubicación: ${mapsUrl}`);
         }
-        
-        function dispararAlarmaGeneral() { 
-            document.body.className = 'alerta-roja'; 
-            document.getElementById('estado').innerText = "🔴 SIRENA ACTIVADA"; 
-            sonidoAlarma.play(); 
-            iniciarRastreoGPS(); 
-            enviarDatos(); 
-            avisarTelegram("seguro"); // Dispara Telegram
+
+        function dispararAlarmaGeneral() {
+            document.body.className = 'alerta-roja';
+            document.getElementById('estado').innerText = "🔴 SIRENA ACTIVADA";
+            iniciarAlarma();
+            iniciarRastreoGPS(); enviarDatos();
+            // Enviar alerta Telegram con ubicación
+            const mapsUrl = `https://maps.google.com/?q=${latActual},${lonActual}`;
+            enviarTelegram(`🚨 ¡ALERTA ROBO! Alarma sonando.\n📍 Última ubicación: ${mapsUrl}`);
         }
 
         window.silenciarAlarma = function() {
-            nivelAlarma = 0; if(temporizadorNormal) clearTimeout(temporizadorNormal);
-            sonidoAviso.pause(); sonidoAviso.currentTime = 0; sonidoAlarma.pause(); sonidoAlarma.currentTime = 0;
+            nivelAlarma = 0; if (temporizadorNormal) clearTimeout(temporizadorNormal);
+            pararAlarma();
             if (gpsTracker !== null) { navigator.geolocation.clearWatch(gpsTracker); gpsTracker = null; }
             document.getElementById('coordenadas').innerText = "GPS: En reposo";
-            document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; enviarDatos();
+            document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA";
+            telegramEnviado = false; // resetear para el próximo evento
+            enviarDatos();
         };
 
         window.detenerVigilancia = function() {
-            vigilando = false; nivelAlarma = 0; if(temporizadorNormal) clearTimeout(temporizadorNormal);
-            sonidoAviso.pause(); sonidoAviso.currentTime = 0; sonidoAlarma.pause(); sonidoAlarma.currentTime = 0;
+            vigilando = false; nivelAlarma = 0; if (temporizadorNormal) clearTimeout(temporizadorNormal);
+            pararAlarma();
             window.removeEventListener('devicemotion', detectarGolpe);
             if (gpsTracker !== null) { navigator.geolocation.clearWatch(gpsTracker); gpsTracker = null; }
             if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
             document.getElementById('pantalla-negra').style.display = 'none';
             document.body.className = ''; document.getElementById('estado').innerText = "⚪ SISTEMA APAGADO";
             document.getElementById('coordenadas').innerText = "GPS: Apagado";
-            document.getElementById('btnSimular').style.display = "none";
-            document.getElementById('btnPantalla').style.display = "none"; 
-            document.getElementById('btnDetener').style.display = "none";
+            document.getElementById('btnSimular').style.display  = "none";
+            document.getElementById('btnPantalla').style.display = "none";
+            document.getElementById('btnDetener').style.display  = "none";
             document.getElementById('selector-modos').style.display = "block";
-            document.getElementById('btnActivar').style.display = "block";
-            enviarDatos(); 
+            document.getElementById('btnActivar').style.display  = "block";
+            telegramEnviado = false;
+            enviarDatos();
         };
 
         function iniciarRastreoGPS() {
             document.getElementById('coordenadas').innerText = "📍 Activando GPS...";
             if (navigator.geolocation) {
-                gpsTracker = navigator.geolocation.watchPosition((posicion) => {
-                    latActual = posicion.coords.latitude; lonActual = posicion.coords.longitude;
-                    document.getElementById('coordenadas').innerText = `📍 Pos: ${latActual.toFixed(5)}, ${lonActual.toFixed(5)}`;
-                    enviarDatos();
-                }, (error) => { document.getElementById('coordenadas').innerText = "❌ Error GPS"; }, 
-                { enableHighAccuracy: true, maximumAge: 3000, timeout: 8000 });
+                gpsTracker = navigator.geolocation.watchPosition(
+                    (pos) => { latActual = pos.coords.latitude; lonActual = pos.coords.longitude; document.getElementById('coordenadas').innerText = `📍 Pos: ${latActual.toFixed(5)}, ${lonActual.toFixed(5)}`; enviarDatos(); },
+                    ()    => { document.getElementById('coordenadas').innerText = "❌ Error GPS"; },
+                    { enableHighAccuracy: true, maximumAge: 3000, timeout: 8000 }
+                );
             }
         }
     </script>
