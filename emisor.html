@@ -87,11 +87,11 @@
         let gpsTracker = null, wakeLock = null, toquesDesbloqueo = 0;
         let latActual = 43.3390, lonActual = -1.7896;
 
-        // --- Audio Engine (Web Audio API) ---
+        // --- Audio Engine: Alarma de coche (Web Audio API) ---
         let audioCtx = null;
-        let alarmaNodes = [];   // nodos activos de la sirena
+        let alarmaNodes = [];
         let alarmaRunning = false;
-        let alarmaRafId = null;
+        let alarmaTimeout = null;
 
         function getAudioCtx() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -99,12 +99,12 @@
             return audioCtx;
         }
 
-        // Pitido corto de advertencia: 3 beeps agudos con armónicos
+        // Pitido corto de advertencia: 3 beeps agudos
         function playAviso() {
             const ctx = getAudioCtx();
             [0, 220, 440].forEach(delay => {
                 setTimeout(() => {
-                    [880, 1760].forEach(freq => {           // fundamental + 1ª armónica
+                    [880, 1760].forEach(freq => {
                         const osc = ctx.createOscillator();
                         const gain = ctx.createGain();
                         osc.connect(gain); gain.connect(ctx.destination);
@@ -119,76 +119,74 @@
             });
         }
 
-        // Sirena estridente: sweep continuo entre dos frecuencias + oscilador de ruido distorsionado
+        // Genera un tono de alarma de coche: ataque rápido, caída lenta, con armónicos
+        function tonoAlarma(freqBase, duracion, volumen) {
+            const ctx = getAudioCtx();
+            const comp = ctx.createDynamicsCompressor();
+            comp.threshold.value = -3; comp.ratio.value = 12;
+            comp.connect(ctx.destination);
+
+            // Oscilador principal (diente de sierra — timbre agresivo)
+            const osc1 = ctx.createOscillator();
+            const g1 = ctx.createGain();
+            osc1.type = 'sawtooth';
+            osc1.frequency.value = freqBase;
+            g1.gain.setValueAtTime(0, ctx.currentTime);
+            g1.gain.linearRampToValueAtTime(volumen, ctx.currentTime + 0.01);   // ataque durísimo
+            g1.gain.setValueAtTime(volumen, ctx.currentTime + duracion - 0.05);
+            g1.gain.linearRampToValueAtTime(0, ctx.currentTime + duracion);
+            osc1.connect(g1); g1.connect(comp);
+
+            // 2ª armónica (onda cuadrada) — añade el "chirp" metálico
+            const osc2 = ctx.createOscillator();
+            const g2 = ctx.createGain();
+            osc2.type = 'square';
+            osc2.frequency.value = freqBase * 1.5;
+            g2.gain.setValueAtTime(0, ctx.currentTime);
+            g2.gain.linearRampToValueAtTime(volumen * 0.4, ctx.currentTime + 0.01);
+            g2.gain.setValueAtTime(volumen * 0.4, ctx.currentTime + duracion - 0.05);
+            g2.gain.linearRampToValueAtTime(0, ctx.currentTime + duracion);
+            osc2.connect(g2); g2.connect(comp);
+
+            // Pitch bend descendente suave (el "woop" de alarma de coche)
+            osc1.frequency.setValueAtTime(freqBase, ctx.currentTime);
+            osc1.frequency.exponentialRampToValueAtTime(freqBase * 0.85, ctx.currentTime + duracion);
+            osc2.frequency.setValueAtTime(freqBase * 1.5, ctx.currentTime);
+            osc2.frequency.exponentialRampToValueAtTime(freqBase * 1.5 * 0.85, ctx.currentTime + duracion);
+
+            osc1.start(ctx.currentTime); osc1.stop(ctx.currentTime + duracion);
+            osc2.start(ctx.currentTime); osc2.stop(ctx.currentTime + duracion);
+
+            return duracion * 1000;
+        }
+
+        // Patrón clásico de alarma de coche: wee-WOO wee-WOO (ciclos de tono alto y bajo)
         function iniciarAlarma() {
             if (alarmaRunning) return;
             alarmaRunning = true;
-            const ctx = getAudioCtx();
 
-            // Compressor para maximizar el volumen percibido
-            const comp = ctx.createDynamicsCompressor();
-            comp.threshold.value = -6;
-            comp.ratio.value = 20;
-            comp.connect(ctx.destination);
+            // Secuencia: [frecuencia, duración(s), volumen] x 2 tonos que se alternan
+            const patron = [
+                [1100, 0.38, 0.75],   // tono ALTO  (wee)
+                [780,  0.38, 0.75],   // tono BAJO  (woo)
+            ];
+            let paso = 0;
 
-            // WaveShaper para distorsión/agresividad
-            const distortion = ctx.createWaveShaper();
-            const curve = new Float32Array(256);
-            for (let i = 0; i < 256; i++) {
-                const x = (i * 2) / 256 - 1;
-                curve[i] = (Math.PI + 400) * x / (Math.PI + 400 * Math.abs(x));
-            }
-            distortion.curve = curve;
-            distortion.connect(comp);
-
-            // Oscilador principal con sweep de frecuencia (estilo sirena policial)
-            const osc1 = ctx.createOscillator();
-            const gain1 = ctx.createGain();
-            osc1.type = 'sawtooth';
-            osc1.frequency.value = 700;
-            gain1.gain.value = 0.7;
-            osc1.connect(gain1); gain1.connect(distortion);
-
-            // Oscilador secundario desafinado (engrosa y añade estridencia)
-            const osc2 = ctx.createOscillator();
-            const gain2 = ctx.createGain();
-            osc2.type = 'square';
-            osc2.frequency.value = 710;
-            gain2.gain.value = 0.5;
-            osc2.connect(gain2); gain2.connect(distortion);
-
-            // Oscilador de alta frecuencia (pitido agudo que molesta)
-            const osc3 = ctx.createOscillator();
-            const gain3 = ctx.createGain();
-            osc3.type = 'sine';
-            osc3.frequency.value = 3400;
-            gain3.gain.value = 0.3;
-            osc3.connect(gain3); gain3.connect(comp);
-
-            osc1.start(); osc2.start(); osc3.start();
-            alarmaNodes = [osc1, osc2, osc3, gain1, gain2, gain3, distortion, comp];
-
-            // Sweep: sube de 700 a 1400 Hz y baja, en ciclos de 600ms
-            let sweepUp = true;
-            const SWEEP_LOW = 700, SWEEP_HIGH = 1400, SWEEP_STEP = 70;
-            let freqActual = SWEEP_LOW;
-
-            function sweep() {
+            function siguienteTono() {
                 if (!alarmaRunning) return;
-                freqActual += sweepUp ? SWEEP_STEP : -SWEEP_STEP;
-                if (freqActual >= SWEEP_HIGH) sweepUp = false;
-                if (freqActual <= SWEEP_LOW) sweepUp = true;
-                osc1.frequency.setValueAtTime(freqActual, ctx.currentTime);
-                osc2.frequency.setValueAtTime(freqActual + 12, ctx.currentTime);  // ligero detuning
-                osc3.frequency.setValueAtTime(freqActual * 4.5, ctx.currentTime); // armónico alto
-                alarmaRafId = setTimeout(sweep, 60);
+                const [freq, dur, vol] = patron[paso % patron.length];
+                tonoAlarma(freq, dur, vol);
+                paso++;
+                // Pequeña pausa entre pares para el efecto "wee-WOO · wee-WOO"
+                const pausa = (paso % 2 === 0) ? 120 : 20;
+                alarmaTimeout = setTimeout(siguienteTono, dur * 1000 + pausa);
             }
-            sweep();
+            siguienteTono();
         }
 
         function pararAlarma() {
             alarmaRunning = false;
-            if (alarmaRafId) { clearTimeout(alarmaRafId); alarmaRafId = null; }
+            if (alarmaTimeout) { clearTimeout(alarmaTimeout); alarmaTimeout = null; }
             alarmaNodes.forEach(n => { try { if (n.stop) n.stop(); n.disconnect(); } catch(e){} });
             alarmaNodes = [];
         }
