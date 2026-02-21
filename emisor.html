@@ -45,13 +45,13 @@
         <h1>🚨 Sensor Antirrobo</h1>
         
         <div class="modos-container" id="selector-modos">
-            <label><input type="radio" name="modoVigilancia" value="normal" checked> 🔵 <b>Modo Normal</b><br><small style="color:#777;">Tolerancia 30s antes de pitar.</small></label>
-            <label><input type="radio" name="modoVigilancia" value="seguro"> 🔴 <b>Modo Seguro</b><br><small style="color:#777;">Aviso inmediato al mínimo roce.</small></label>
+            <label><input type="radio" name="modoVigilancia" value="normal" checked> 🔵 <b>Modo Normal</b><br><small style="color:#777;">Sigilo total, notifica al 2º toque.</small></label>
+            <label><input type="radio" name="modoVigilancia" value="seguro"> 🔴 <b>Modo Seguro</b><br><small style="color:#777;">Pita al 1º toque, sirena al 2º.</small></label>
         </div>
 
         <button class="btn btn-activar" id="btnActivar" onclick="iniciarVigilancia()">🟢 Activar Vigilancia</button>
         <button class="btn btn-pantalla" id="btnPantalla" onclick="apagarPantalla()">🕶️ Apagar Pantalla</button>
-        <button class="btn btn-detener" id="btnDetener" onclick="detenerVigilancia()">🛑 Detener Manualmente</button>
+        <button class="btn btn-detener" id="btnDetener" onclick="detenerVigilancia()">🛑 Desactivar Vigilancia</button>
         
         <div id="estado">Estado: Apagado</div>
         <div id="coordenadas">GPS: En reposo</div>
@@ -97,9 +97,15 @@
             document.getElementById('app-screen').style.display = 'block';
 
             onSnapshot(doc(db, "dispositivos", BUZON_SECRETO), (documento) => {
-                if (documento.exists() && documento.data().comando === "apagar" && vigilando) {
-                    window.detenerVigilancia();
-                    setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true });
+                if (documento.exists() && vigilando) {
+                    let cmd = documento.data().comando;
+                    if (cmd === "apagar") {
+                        window.detenerVigilancia();
+                        setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true });
+                    } else if (cmd === "silenciar") {
+                        window.silenciarAlarma();
+                        setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true });
+                    }
                 }
             });
         };
@@ -108,7 +114,6 @@
 
         function enviarDatos() {
             if(!BUZON_SECRETO) return;
-            // AÑADIDO: 'activo: vigilando' para informar al monitor del estado real
             setDoc(doc(db, "dispositivos", BUZON_SECRETO), {
                 latitud: latActual, longitud: lonActual, nivelAlarma: nivelAlarma, modo: obtenerModo(), tiempo: Date.now(), activo: vigilando
             }, { merge: true }).catch(e => console.error(e));
@@ -168,37 +173,77 @@
 
             if (modo === "normal") {
                 if (nivelAlarma === 0) {
-                    nivelAlarma = 1; tiempoUltimoAviso = ahora; enviarDatos(); 
+                    // MODO NORMAL - 1er Movimiento: Amarillo silencioso 30s
+                    nivelAlarma = 1; tiempoUltimoAviso = ahora; 
+                    document.body.className = 'alerta-amarilla';
+                    document.getElementById('estado').innerText = "🟡 Alerta Silenciosa (30s)";
+                    enviarDatos(); 
                     if(temporizadorNormal) clearTimeout(temporizadorNormal);
                     temporizadorNormal = setTimeout(() => {
                         if (nivelAlarma === 1) { 
-                            nivelAlarma = 0; enviarDatos();
+                            nivelAlarma = 0; document.body.className = '';
                             document.getElementById('estado').innerText = "🟢 Vigilando (NORMAL)";
+                            enviarDatos();
                         }
                     }, 30000);
                 } else if (nivelAlarma === 1 && (ahora - tiempoUltimoAviso > 2000)) {
-                    nivelAlarma = 2; if(temporizadorNormal) clearTimeout(temporizadorNormal); dispararAlarmaGeneral();
+                    // MODO NORMAL - 2do Movimiento: GPS y Seguimiento pero SIN sonido
+                    nivelAlarma = 2; if(temporizadorNormal) clearTimeout(temporizadorNormal); 
+                    dispararAlarmaSilenciosa();
                 }
+
             } else if (modo === "seguro") {
                 if (nivelAlarma === 0) {
+                    // MODO SEGURO - 1er Movimiento: Amarillo + Beep 30s
                     nivelAlarma = 1; tiempoUltimoAviso = ahora;
                     sonidoAviso.currentTime = 0; sonidoAviso.play();
                     document.body.className = 'alerta-amarilla';
-                    document.getElementById('estado').innerText = "⚠️ ADVERTENCIA INMEDIATA";
-                    iniciarRastreoGPS(); enviarDatos(); 
+                    document.getElementById('estado').innerText = "🟡 Advertencia Sonora (30s)";
+                    enviarDatos(); 
+                    if(temporizadorNormal) clearTimeout(temporizadorNormal);
+                    temporizadorNormal = setTimeout(() => {
+                        if (nivelAlarma === 1) { 
+                            nivelAlarma = 0; document.body.className = '';
+                            document.getElementById('estado').innerText = "🟢 Vigilando (SEGURO)";
+                            enviarDatos();
+                        }
+                    }, 30000);
                 } else if (nivelAlarma === 1 && (ahora - tiempoUltimoAviso > 2000)) {
-                    nivelAlarma = 2; dispararAlarmaGeneral();
+                    // MODO SEGURO - 2do Movimiento: GPS y Sirena a tope
+                    nivelAlarma = 2; if(temporizadorNormal) clearTimeout(temporizadorNormal);
+                    dispararAlarmaGeneral();
                 }
             }
+        }
+
+        function dispararAlarmaSilenciosa() {
+            document.body.className = 'alerta-roja';
+            document.getElementById('estado').innerText = "🔴 ¡ROBO SILENCIOSO!";
+            // En modo normal, no hay sonidoAlarma.play()
+            iniciarRastreoGPS(); 
+            enviarDatos(); 
         }
 
         function dispararAlarmaGeneral() {
             document.body.className = 'alerta-roja';
             document.getElementById('estado').innerText = "🔴 ¡ROBO CONFIRMADO!";
-            sonidoAlarma.play();
+            sonidoAlarma.play(); // Aquí sí hay sonido
             iniciarRastreoGPS(); 
             enviarDatos(); 
         }
+
+        window.silenciarAlarma = function() {
+            nivelAlarma = 0; 
+            if(temporizadorNormal) clearTimeout(temporizadorNormal);
+            sonidoAviso.pause(); sonidoAviso.currentTime = 0;
+            sonidoAlarma.pause(); sonidoAlarma.currentTime = 0;
+            if (gpsTracker !== null) { navigator.geolocation.clearWatch(gpsTracker); gpsTracker = null; }
+            document.getElementById('coordenadas').innerText = "GPS: En reposo (esperando)";
+            
+            document.body.className = '';
+            document.getElementById('estado').innerText = "🟢 Vigilando (" + obtenerModo().toUpperCase() + ")";
+            enviarDatos();
+        };
 
         window.detenerVigilancia = function() {
             vigilando = false; nivelAlarma = 0; 
