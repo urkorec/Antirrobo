@@ -74,12 +74,22 @@
         let sonidoMonitor = new Audio('https://actions.google.com/sounds/v1/alarms/beeping_alarm.ogg');
         sonidoMonitor.loop = true;
 
+        // Función maestra para desbloquear el audio en navegadores estrictos
+        function desbloquearAudio(audioObj) {
+            audioObj.muted = true;
+            audioObj.play().then(() => {
+                audioObj.pause();
+                audioObj.muted = false;
+                audioObj.currentTime = 0;
+            }).catch(e => console.log("Esperando permiso de audio...", e));
+        }
+
         window.iniciarSesion = function() {
             BUZON_SECRETO = document.getElementById('inputContrasena').value.trim();
             if (BUZON_SECRETO === "") return alert("La contraseña es obligatoria.");
             
-            // Inicialización clásica
-            sonidoMonitor.play().then(() => sonidoMonitor.pause()).catch(e => console.log(e));
+            // Desbloqueamos el audio del radar en el clic del usuario
+            desbloquearAudio(sonidoMonitor);
 
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'block';
@@ -134,7 +144,7 @@
                             alertaDiv.style.display = 'block';
                             btnSilenciar.style.display = 'block'; 
                             
-                            // Reproducir sonido y hacer una vibración estándar (si el navegador lo permite)
+                            // El audio ya fue desbloqueado, así que debería sonar sin problemas
                             sonidoMonitor.play().catch(e => console.log(e));
                             if ("vibrate" in navigator) navigator.vibrate([1000, 500, 1000, 500, 1000]);
                             
