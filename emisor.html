@@ -87,11 +87,14 @@
         const TELEGRAM_TOKEN   = "8565258420:AAHB5CHbTJChcFvyW5FMiZ2Jl_tpnSDM8Ho";    // ej: 7123456789:AAFxxxxxx
         const TELEGRAM_CHAT_ID = "1156363611";  // ej: 123456789
 
-        let telegramEnviado = false; // evita spam si la alarma persiste
+        let telegramNivel1Enviado = false; // evita spam en nivel 1
+        let telegramNivel2Enviado = false; // evita spam en nivel 2
 
-        async function enviarTelegram(mensaje) {
-            if (telegramEnviado) return;
-            telegramEnviado = true;
+        async function enviarTelegram(mensaje, nivel = 2) {
+            if (nivel === 1 && telegramNivel1Enviado) return;
+            if (nivel === 2 && telegramNivel2Enviado) return;
+            if (nivel === 1) telegramNivel1Enviado = true;
+            if (nivel === 2) telegramNivel2Enviado = true;
             try {
                 await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
                     method: "POST",
@@ -279,7 +282,7 @@
 
         function activarSensores() {
             vigilando = true; nivelAlarma = 0;
-            telegramEnviado = false; // resetear al activar vigilancia
+            telegramNivel1Enviado = false; telegramNivel2Enviado = false; // resetear al activar vigilancia
             document.getElementById('selector-modos').style.display = "none";
             document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA";
             document.getElementById('btnActivar').style.display  = "none";
@@ -314,9 +317,10 @@
                     document.body.className = 'alerta-amarilla';
                     document.getElementById('estado').innerText = "🟡 MOVIMIENTO DETECTADO";
                     enviarDatos();
+                    enviarTelegram("⚠️ Movimiento detectado (modo sigilo). Vigilando 30 segundos...", 1);
                     if (temporizadorNormal) clearTimeout(temporizadorNormal);
                     temporizadorNormal = setTimeout(() => {
-                        if (nivelAlarma === 1) { nivelAlarma = 0; document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; enviarDatos(); }
+                        if (nivelAlarma === 1) { nivelAlarma = 0; document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; telegramNivel1Enviado = false; telegramNivel2Enviado = false; enviarDatos(); }
                     }, 30000);
                 } else if (nivelAlarma === 1 && (forzar || ahora - tiempoUltimoAviso > 2000)) {
                     nivelAlarma = 2; if (temporizadorNormal) clearTimeout(temporizadorNormal); dispararAlarmaSilenciosa();
@@ -328,9 +332,10 @@
                     document.body.className = 'alerta-amarilla';
                     document.getElementById('estado').innerText = "🟡 ADVERTENCIA SONORA";
                     enviarDatos();
+                    enviarTelegram("⚠️ Movimiento detectado (modo alarma). Sonando aviso...", 1);
                     if (temporizadorNormal) clearTimeout(temporizadorNormal);
                     temporizadorNormal = setTimeout(() => {
-                        if (nivelAlarma === 1) { nivelAlarma = 0; document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; enviarDatos(); }
+                        if (nivelAlarma === 1) { nivelAlarma = 0; document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; telegramNivel1Enviado = false; telegramNivel2Enviado = false; enviarDatos(); }
                     }, 30000);
                 } else if (nivelAlarma === 1 && (forzar || ahora - tiempoUltimoAviso > 2000)) {
                     nivelAlarma = 2; if (temporizadorNormal) clearTimeout(temporizadorNormal); dispararAlarmaGeneral();
@@ -342,9 +347,8 @@
             document.body.className = 'alerta-roja';
             document.getElementById('estado').innerText = "🔴 ROBO SILENCIOSO";
             iniciarRastreoGPS(); enviarDatos();
-            // Enviar alerta Telegram con ubicación
             const mapsUrl = `https://maps.google.com/?q=${latActual},${lonActual}`;
-            enviarTelegram(`🚨 ¡ALERTA ROBO! Bici en movimiento (modo silencio).\n📍 Última ubicación: ${mapsUrl}`);
+            enviarTelegram(`🚨 ¡ROBO EN CURSO! Bici en movimiento (modo silencio).\n📍 Ubicación: ${mapsUrl}`);
         }
 
         function dispararAlarmaGeneral() {
@@ -352,9 +356,8 @@
             document.getElementById('estado').innerText = "🔴 SIRENA ACTIVADA";
             iniciarAlarma();
             iniciarRastreoGPS(); enviarDatos();
-            // Enviar alerta Telegram con ubicación
             const mapsUrl = `https://maps.google.com/?q=${latActual},${lonActual}`;
-            enviarTelegram(`🚨 ¡ALERTA ROBO! Alarma sonando.\n📍 Última ubicación: ${mapsUrl}`);
+            enviarTelegram(`🚨 ¡ROBO EN CURSO! Alarma sonando.\n📍 Ubicación: ${mapsUrl}`);
         }
 
         window.silenciarAlarma = function() {
@@ -363,7 +366,7 @@
             if (gpsTracker !== null) { navigator.geolocation.clearWatch(gpsTracker); gpsTracker = null; }
             document.getElementById('coordenadas').innerText = "GPS: En reposo";
             document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA";
-            telegramEnviado = false; // resetear para el próximo evento
+            telegramNivel1Enviado = false; telegramNivel2Enviado = false;
             enviarDatos();
         };
 
@@ -381,7 +384,7 @@
             document.getElementById('btnDetener').style.display  = "none";
             document.getElementById('selector-modos').style.display = "block";
             document.getElementById('btnActivar').style.display  = "block";
-            telegramEnviado = false;
+            telegramNivel1Enviado = false; telegramNivel2Enviado = false;
             enviarDatos();
         };
 
