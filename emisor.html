@@ -9,65 +9,63 @@
         body { font-family: 'Poppins', sans-serif; text-align: center; margin: 0; height: 100vh; overflow: hidden; background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); color: white; transition: background 0.3s; }
         
         #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; }
-        .box { background: rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); width: 80%; max-width: 350px;}
-        .box h2 { margin-top: 0; color: #4facfe; font-weight: 800;}
-        .input-pass { padding: 15px; font-size: 16px; border-radius: 12px; border: none; margin-bottom: 20px; width: 90%; text-align: center; font-family: 'Poppins'; }
-        .btn-login { background: linear-gradient(45deg, #4facfe, #00f2fe); color: white; padding: 15px; font-size: 16px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; width: 100%; transition: transform 0.2s; }
+        .box { background: rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); width: 80%; max-width: 350px; }
+        .box h2 { margin-top: 0; font-weight: 800; font-size: 24px; color: #4facfe; }
+        .input-pass { padding: 15px; font-size: 16px; border-radius: 12px; border: none; margin-bottom: 20px; width: 90%; text-align: center; outline: none; font-family: 'Poppins', sans-serif; background: rgba(255,255,255,0.9); }
+        .btn-login { background: linear-gradient(45deg, #4facfe, #00f2fe); color: white; padding: 15px; font-size: 18px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; width: 100%; transition: transform 0.2s; }
         
-        #app-screen { display: none; padding: 20px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; align-items: center;}
+        #app-screen { display: none; padding: 20px; height: 100%; box-sizing: border-box; flex-direction: column; align-items: center; }
+        h1 { font-weight: 800; margin-bottom: 5px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
         
-        .panel-control { background: rgba(0,0,0,0.4); padding: 20px; border-radius: 15px; width: 100%; max-width: 350px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);}
+        .modos-container { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 16px; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin: 20px 0; width: 90%; max-width: 350px; border: 1px solid rgba(255,255,255,0.1); }
+        .modos-container label { display: block; font-size: 16px; margin: 15px 0; cursor: pointer; padding: 10px; border-radius: 8px; transition: background 0.2s; }
+        .modos-container small { color: #aaa; display: block; margin-top: 5px; font-size: 13px; margin-left: 28px;}
         
-        button { padding: 15px; width: 100%; border-radius: 12px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; margin-bottom: 15px; font-family: 'Poppins'; transition: transform 0.1s;}
-        button:active { transform: scale(0.95); }
-        .btn-verde { background: linear-gradient(45deg, #11998e, #38ef7d); color: white; }
-        .btn-rojo { background: linear-gradient(45deg, #cb2d3e, #ef473a); color: white; display: none; }
-        .btn-naranja { background: linear-gradient(45deg, #f12711, #f5af19); color: white; display: none; }
-        .btn-gris { background: rgba(255,255,255,0.2); color: white; display: none; }
+        .btn { padding: 18px; font-size: 18px; color: white; border: none; border-radius: 12px; cursor: pointer; margin: 10px 0; font-weight: 600; width: 90%; max-width: 350px; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-activar { background: linear-gradient(45deg, #11998e, #38ef7d); box-shadow: 0 4px 15px rgba(56,239,125,0.4); }
+        .btn-detener { background: linear-gradient(45deg, #cb2d3e, #ef473a); box-shadow: 0 4px 15px rgba(239,71,58,0.4); display: none; }
+        .btn-pantalla { background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); display: none; }
+        .btn-simular { background: rgba(243, 156, 18, 0.8); border: 2px dashed #f1c40f; display: none; }
         
-        #estado { font-size: 22px; font-weight: 800; margin-bottom: 10px; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2);}
-        #coordenadas { font-size: 12px; color: #aaa; margin-bottom: 20px; font-family: monospace; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 8px;}
+        #estado { margin-top: 20px; font-size: 20px; font-weight: 800; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.4); width: 90%; max-width: 350px; backdrop-filter: blur(5px); }
+        #coordenadas { margin-top: 10px; font-size: 13px; color: #ddd; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 8px; width: 90%; max-width: 350px; }
         
-        .alerta-amarilla { background: #b8860b !important; }
-        .alerta-roja { background: #8b0000 !important; animation: parpadeo 0.5s infinite alternate; }
-        @keyframes parpadeo { from { background: #8b0000; } to { background: #ff0000; } }
-
-        #pantalla-negra { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; color: #222;}
+        .alerta-amarilla { background: #d4af37 !important; color: #000; }
+        .alerta-roja { background: #8b0000 !important; animation: latido 0.3s infinite alternate; }
+        @keyframes latido { from { background: #ff0000; } to { background: #8b0000; } }
         
-        .radio-group { text-align: left; margin-bottom: 15px; font-size: 14px;}
-        .radio-group label { display: block; margin-bottom: 10px; cursor: pointer; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;}
-        .radio-group input { margin-right: 10px; }
+        #pantalla-negra { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: black; z-index: 9999; display: none; color: #333; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; }
     </style>
 </head>
 <body>
     <div id="login-screen">
         <div class="box">
             <h2>🛡️ Escudo Emisor</h2>
-            <p>Se queda en la bici</p>
-            <input type="password" id="inputContrasena" class="input-pass" placeholder="Contraseña secreta">
+            <p>Protege tu vehículo</p>
+            <input type="password" id="inputContrasena" class="input-pass" placeholder="Tu contraseña secreta">
             <button class="btn-login" onclick="iniciarSesion()">Desbloquear</button>
         </div>
     </div>
 
-    <div id="pantalla-negra" onclick="despertarPantalla()">
-        <p>Toca para despertar</p>
-    </div>
-
-    <div id="app-screen" style="display: none;">
-        <div id="estado">⚪ SISTEMA APAGADO</div>
-        <div id="coordenadas">GPS: Apagado</div>
-
-        <div class="panel-control" id="selector-modos">
-            <div class="radio-group">
-                <label><input type="radio" name="modo" value="normal" checked> 🔵 <b>Modo Sigilo:</b> No suena aquí. Avisa al móvil y Telegram.</label>
-                <label><input type="radio" name="modo" value="seguro"> 🔴 <b>Modo Alarma:</b> Pitará AQUÍ y avisará al móvil y Telegram.</label>
-            </div>
+    <div id="app-screen">
+        <div id="pantalla-negra" onclick="toqueDesbloqueo()">
+            <div>(Toca 3 veces para despertar)</div>
+        </div>
+        
+        <h1>🚨 Antirrobo ACTIVO</h1>
+        
+        <div class="modos-container" id="selector-modos">
+            <label><input type="radio" name="modoVigilancia" value="normal" checked> 🔵 <b>Modo Sigilo (Normal)</b><br><small>Avisa al monitor y Telegram en silencio.</small></label>
+            <label><input type="radio" name="modoVigilancia" value="seguro"> 🔴 <b>Modo Alarma (Seguro)</b><br><small>Sonido estridente al moverla.</small></label>
         </div>
 
-        <button class="btn-verde" id="btnActivar" onclick="iniciarVigilancia()">🛡️ Armar Escudo</button>
-        <button class="btn-naranja" id="btnSimular" onclick="simularMovimiento()">👋 Simular Movimiento</button>
-        <button class="btn-gris" id="btnPantalla" onclick="apagarPantalla()">Apagar Pantalla (Falso)</button>
-        <button class="btn-rojo" id="btnDetener" onclick="detenerVigilancia()">🛑 Desarmar Escudo</button>
+        <button class="btn btn-activar" id="btnActivar" onclick="iniciarVigilancia()">Escudar Vehículo</button>
+        <button class="btn btn-simular" id="btnSimular" onclick="simularMovimiento()">👋 Simular Movimiento</button>
+        <button class="btn btn-pantalla" id="btnPantalla" onclick="apagarPantalla()">🕶️ Oscurecer Pantalla</button>
+        <button class="btn btn-detener" id="btnDetener" onclick="detenerVigilancia()">🛑 Desactivar Escudo</button>
+        
+        <div id="estado">⚪ Reposo</div>
+        <div id="coordenadas">GPS: Esperando activación</div>
     </div>
 
     <script type="module">
@@ -75,13 +73,13 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
         // ==========================================
-        // 🤖 CONFIGURACIÓN DE TELEGRAM (¡Pega tus datos aquí!)
+        // 🤖 CONFIGURACIÓN DE TELEGRAM
         // ==========================================
-        const TELEGRAM_TOKEN = 8565258420:AAHB5CHbTJChcFvyW5FMiZ2Jl_tpnSDM8Ho; 
-        const TELEGRAM_CHAT_ID = 1156363611;
+        const TELEGRAM_TOKEN = "8565258420:AAHB5CHbTJChcFvyW5FMiZ2Jl_tpnSDM8Ho"; 
+        const TELEGRAM_CHAT_ID = "1156363611";
 
         function avisarTelegram(modo) {
-            if (TELEGRAM_TOKEN === 8565258420:AAHB5CHbTJChcFvyW5FMiZ2Jl_tpnSDM8Ho || !TELEGRAM_CHAT_ID) return;
+            if (TELEGRAM_TOKEN === "8565258420:AAHB5CHbTJChcFvyW5FMiZ2Jl_tpnSDM8Ho" || !TELEGRAM_CHAT_ID) return;
             
             let texto = "🚨 ¡ATENCIÓN! ROBO DETECTADO 🚨\n\nTu bicicleta está en movimiento.";
             if (modo === "normal") texto += "\n🤫 (Modo Sigilo: El ladrón no sabe que lo estás viendo).";
@@ -91,134 +89,183 @@
         }
         // ==========================================
 
-        const app = initializeApp({
+        const firebaseConfig = {
             apiKey: "AIzaSyCtStv8wmlLNOhiw0lnc9mzVlQwLXrYdbY",
             authDomain: "antirrobo-457ef.firebaseapp.com",
             projectId: "antirrobo-457ef"
-        });
+        };
+
+        const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let BUZON = "", vigilando = false, nivel = 0, lastX = null, lastY = null, lastZ = null;
-        let latActual = 43.3390, lonActual = -1.7896; 
-        let gpsTracker = null;
-        let wakeLock = null;
-        
-        let aviso = new Audio('https://actions.google.com/sounds/v1/alarms/beeping_alarm.ogg');
-        let alarma = new Audio('https://actions.google.com/sounds/v1/alarms/fire_alarm_classic.ogg');
-        alarma.loop = true;
+        let BUZON_SECRETO = "";
+        let vigilando = false, nivelAlarma = 0, tiempoUltimoAviso = 0;
+        let temporizadorNormal = null, lastX = null, lastY = null, lastZ = null;
+        let gpsTracker = null, wakeLock = null, toquesDesbloqueo = 0;
+        let latActual = 43.3390, lonActual = -1.7896;
+
+        let sonidoAviso = new Audio('https://actions.google.com/sounds/v1/alarms/beeping_alarm.ogg');
+        let sonidoAlarma = new Audio('https://actions.google.com/sounds/v1/alarms/fire_alarm_classic.ogg');
+        sonidoAlarma.loop = true;
 
         window.iniciarSesion = function() {
-            BUZON = document.getElementById('inputContrasena').value.trim();
-            if (!BUZON) return;
-            
-            aviso.load(); alarma.load();
+            BUZON_SECRETO = document.getElementById('inputContrasena').value.trim();
+            if (BUZON_SECRETO === "") return alert("Introduce una contraseña.");
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'flex';
 
-            onSnapshot(doc(db, "dispositivos", BUZON), (docSnap) => {
-                if (docSnap.exists() && vigilando) {
-                    let cmd = docSnap.data().comando;
-                    if (cmd === "apagar") detenerVigilancia();
-                    else if (cmd === "silenciar") silenciar();
+            onSnapshot(doc(db, "dispositivos", BUZON_SECRETO), (documento) => {
+                if (documento.exists() && vigilando) {
+                    let cmd = documento.data().comando;
+                    if (cmd === "apagar") { window.detenerVigilancia(); setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true }); } 
+                    else if (cmd === "silenciar") { window.silenciarAlarma(); setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "" }, { merge: true }); }
                 }
             });
         };
 
-        async function mantenerDespierto() {
-            try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) { console.log("WakeLock falló", err); }
-        }
-
-        window.apagarPantalla = function() { document.getElementById('pantalla-negra').style.display = 'flex'; }
-        window.despertarPantalla = function() { document.getElementById('pantalla-negra').style.display = 'none'; }
+        function obtenerModo() { return document.querySelector('input[name="modoVigilancia"]:checked').value; }
 
         function enviarDatos() {
-            if(!BUZON) return;
-            let modo = document.querySelector('input[name="modo"]:checked').value;
-            setDoc(doc(db, "dispositivos", BUZON), { 
-                nivelAlarma: nivel, modo: modo, activo: vigilando, comando: "", latitud: latActual, longitud: lonActual
-            }, { merge: true });
+            if(!BUZON_SECRETO) return;
+            setDoc(doc(db, "dispositivos", BUZON_SECRETO), { latitud: latActual, longitud: lonActual, nivelAlarma: nivelAlarma, modo: obtenerModo(), tiempo: Date.now(), activo: vigilando }, { merge: true });
+        }
+
+        async function mantenerPantallaEncendida() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
+
+        window.apagarPantalla = function() { document.getElementById('pantalla-negra').style.display = 'flex'; }
+
+        window.toqueDesbloqueo = function() {
+            toquesDesbloqueo++;
+            if (toquesDesbloqueo >= 3) { document.getElementById('pantalla-negra').style.display = 'none'; toquesDesbloqueo = 0; }
+            setTimeout(() => { toquesDesbloqueo = 0; }, 2000);
         }
 
         window.iniciarVigilancia = function() {
-            vigilando = true; nivel = 0; mantengoDespierto = true; mantenerDespierto();
-            
-            document.getElementById('btnActivar').style.display = "none";
+            sonidoAviso.play().then(() => sonidoAviso.pause()).catch(e => console.log(e));
+            sonidoAlarma.play().then(() => sonidoAlarma.pause()).catch(e => console.log(e));
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(()=>{}, ()=>{}, {enableHighAccuracy: true});
+            }
+
+            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                DeviceMotionEvent.requestPermission().then(estado => { if (estado === 'granted') activarSensores(); });
+            } else { activarSensores(); }
+        };
+
+        function activarSensores() {
+            vigilando = true; nivelAlarma = 0;
             document.getElementById('selector-modos').style.display = "none";
+            document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA";
+            document.getElementById('btnActivar').style.display = "none";
             document.getElementById('btnSimular').style.display = "block";
             document.getElementById('btnPantalla').style.display = "block";
             document.getElementById('btnDetener').style.display = "block";
-            document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA";
             
-            iniciarRastreoGPS();
-            enviarDatos();
+            mantenerPantallaEncendida(); enviarDatos();
+            window.addEventListener('devicemotion', detectarGolpe);
+        }
 
-            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-                DeviceMotionEvent.requestPermission().then(est => { if(est === 'granted') window.addEventListener('devicemotion', detectar); });
-            } else {
-                window.addEventListener('devicemotion', detectar);
-            }
+        window.simularMovimiento = function() {
+            if (vigilando) procesarMovimiento(true);
         };
 
-        window.simularMovimiento = function() { if (vigilando) procesarMovimiento(); };
-
-        function detectar(e) {
-            if (!vigilando || nivel === 2) return;
-            let acc = e.accelerationIncludingGravity || e.acceleration;
+        function detectarGolpe(evento) {
+            if (!vigilando || nivelAlarma === 2) return;
+            let acc = evento.accelerationIncludingGravity || evento.acceleration;
             if (!acc || acc.x === null) return;
             if (lastX !== null) {
                 let diff = Math.abs(acc.x - lastX) + Math.abs(acc.y - lastY) + Math.abs(acc.z - lastZ);
-                if (diff > 12) procesarMovimiento();
+                if (diff > 10) procesarMovimiento(false);
             }
             lastX = acc.x; lastY = acc.y; lastZ = acc.z;
         }
 
-        function procesarMovimiento() {
-            let modo = document.querySelector('input[name="modo"]:checked').value;
-            if (nivel === 0) {
-                nivel = 1; document.body.className = 'alerta-amarilla'; document.getElementById('estado').innerText = "🟡 MOVIMIENTO DETECTADO";
-                if (modo === "seguro") aviso.play();
-                enviarDatos();
-                setTimeout(() => { if (nivel === 1) silenciar(); }, 5000);
-            } else if (nivel === 1) {
-                nivel = 2; document.body.className = 'alerta-roja'; document.getElementById('estado').innerText = "🔴 ALARMA - ROBO EN CURSO";
-                if (modo === "seguro") alarma.play();
-                
-                enviarDatos();
-                
-                // 🔥 AQUÍ DISPARAMOS EL MENSAJE DE TELEGRAM 🔥
-                avisarTelegram(modo);
+        function procesarMovimiento(forzar) {
+            let ahora = Date.now();
+            let modo = obtenerModo();
+
+            if (modo === "normal") {
+                if (nivelAlarma === 0) {
+                    nivelAlarma = 1; tiempoUltimoAviso = ahora; 
+                    document.body.className = 'alerta-amarilla';
+                    document.getElementById('estado').innerText = "🟡 MOVIMIENTO DETECTADO";
+                    enviarDatos(); 
+                    if(temporizadorNormal) clearTimeout(temporizadorNormal);
+                    temporizadorNormal = setTimeout(() => {
+                        if (nivelAlarma === 1) { nivelAlarma = 0; document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; enviarDatos(); }
+                    }, 30000);
+                } else if (nivelAlarma === 1 && (forzar || ahora - tiempoUltimoAviso > 2000)) {
+                    nivelAlarma = 2; if(temporizadorNormal) clearTimeout(temporizadorNormal); dispararAlarmaSilenciosa();
+                }
+            } else if (modo === "seguro") {
+                if (nivelAlarma === 0) {
+                    nivelAlarma = 1; tiempoUltimoAviso = ahora;
+                    sonidoAviso.play();
+                    document.body.className = 'alerta-amarilla';
+                    document.getElementById('estado').innerText = "🟡 ADVERTENCIA SONORA";
+                    enviarDatos(); 
+                    if(temporizadorNormal) clearTimeout(temporizadorNormal);
+                    temporizadorNormal = setTimeout(() => {
+                        if (nivelAlarma === 1) { nivelAlarma = 0; document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; enviarDatos(); }
+                    }, 30000);
+                } else if (nivelAlarma === 1 && (forzar || ahora - tiempoUltimoAviso > 2000)) {
+                    nivelAlarma = 2; if(temporizadorNormal) clearTimeout(temporizadorNormal); dispararAlarmaGeneral();
+                }
             }
         }
 
-        window.silenciar = function() {
-            nivel = 0; aviso.pause(); alarma.pause(); aviso.currentTime = 0; alarma.currentTime = 0;
+        function dispararAlarmaSilenciosa() { 
+            document.body.className = 'alerta-roja'; 
+            document.getElementById('estado').innerText = "🔴 ROBO SILENCIOSO"; 
+            iniciarRastreoGPS(); 
+            enviarDatos(); 
+            avisarTelegram("normal"); // Dispara Telegram
+        }
+        
+        function dispararAlarmaGeneral() { 
+            document.body.className = 'alerta-roja'; 
+            document.getElementById('estado').innerText = "🔴 SIRENA ACTIVADA"; 
+            sonidoAlarma.play(); 
+            iniciarRastreoGPS(); 
+            enviarDatos(); 
+            avisarTelegram("seguro"); // Dispara Telegram
+        }
+
+        window.silenciarAlarma = function() {
+            nivelAlarma = 0; if(temporizadorNormal) clearTimeout(temporizadorNormal);
+            sonidoAviso.pause(); sonidoAviso.currentTime = 0; sonidoAlarma.pause(); sonidoAlarma.currentTime = 0;
+            if (gpsTracker !== null) { navigator.geolocation.clearWatch(gpsTracker); gpsTracker = null; }
+            document.getElementById('coordenadas').innerText = "GPS: En reposo";
             document.body.className = ''; document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA"; enviarDatos();
         };
 
         window.detenerVigilancia = function() {
-            vigilando = false; silenciar(); window.removeEventListener('devicemotion', detectar);
-            if (gpsTracker) navigator.geolocation.clearWatch(gpsTracker);
+            vigilando = false; nivelAlarma = 0; if(temporizadorNormal) clearTimeout(temporizadorNormal);
+            sonidoAviso.pause(); sonidoAviso.currentTime = 0; sonidoAlarma.pause(); sonidoAlarma.currentTime = 0;
+            window.removeEventListener('devicemotion', detectarGolpe);
+            if (gpsTracker !== null) { navigator.geolocation.clearWatch(gpsTracker); gpsTracker = null; }
             if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
-            
             document.getElementById('pantalla-negra').style.display = 'none';
-            document.getElementById('estado').innerText = "⚪ SISTEMA APAGADO";
+            document.body.className = ''; document.getElementById('estado').innerText = "⚪ SISTEMA APAGADO";
             document.getElementById('coordenadas').innerText = "GPS: Apagado";
             document.getElementById('btnSimular').style.display = "none";
-            document.getElementById('btnPantalla').style.display = "none";
+            document.getElementById('btnPantalla').style.display = "none"; 
             document.getElementById('btnDetener').style.display = "none";
             document.getElementById('selector-modos').style.display = "block";
             document.getElementById('btnActivar').style.display = "block";
-            enviarDatos();
+            enviarDatos(); 
         };
 
         function iniciarRastreoGPS() {
             document.getElementById('coordenadas').innerText = "📍 Activando GPS...";
             if (navigator.geolocation) {
-                gpsTracker = navigator.geolocation.watchPosition(
-                    (pos) => { latActual = pos.coords.latitude; lonActual = pos.coords.longitude; document.getElementById('coordenadas').innerText = `📍 Pos: ${latActual.toFixed(5)}, ${lonActual.toFixed(5)}`; enviarDatos(); },
-                    ()    => { document.getElementById('coordenadas').innerText = "❌ Error GPS"; },
-                    { enableHighAccuracy: true, maximumAge: 3000, timeout: 8000 }
-                );
+                gpsTracker = navigator.geolocation.watchPosition((posicion) => {
+                    latActual = posicion.coords.latitude; lonActual = posicion.coords.longitude;
+                    document.getElementById('coordenadas').innerText = `📍 Pos: ${latActual.toFixed(5)}, ${lonActual.toFixed(5)}`;
+                    enviarDatos();
+                }, (error) => { document.getElementById('coordenadas').innerText = "❌ Error GPS"; }, 
+                { enableHighAccuracy: true, maximumAge: 3000, timeout: 8000 });
             }
         }
     </script>
