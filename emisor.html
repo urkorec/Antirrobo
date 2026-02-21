@@ -26,7 +26,6 @@
         .btn-detener  { background: linear-gradient(45deg, #cb2d3e, #ef473a); box-shadow: 0 4px 15px rgba(239,71,58,0.4); display: none; }
         .btn-pantalla { background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); display: none; }
         .btn-simular  { background: rgba(243, 156, 18, 0.8); border: 2px dashed #f1c40f; display: none; }
-        .btn-test-vib { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); font-size: 14px; padding: 10px; letter-spacing: 0; text-transform: none; color: #ccc; }
 
         #estado { margin-top: 20px; font-size: 20px; font-weight: 800; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.4); width: 90%; max-width: 350px; backdrop-filter: blur(5px); }
         #coordenadas { margin-top: 10px; font-size: 13px; color: #ddd; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 8px; width: 90%; max-width: 350px; }
@@ -61,7 +60,6 @@
         </div>
 
         <button class="btn btn-activar"  id="btnActivar"  onclick="iniciarVigilancia()">Escudar Vehículo</button>
-        <button class="btn btn-test-vib" id="btnTestVib"  onclick="testVibrar()">📳 Test vibración</button>
         <button class="btn btn-simular"  id="btnSimular"  onclick="simularMovimiento()">👋 Simular Movimiento</button>
         <button class="btn btn-pantalla" id="btnPantalla" onclick="apagarPantalla()">🕶️ Oscurecer Pantalla</button>
         <button class="btn btn-detener"  id="btnDetener"  onclick="detenerVigilancia()">🛑 Desactivar Escudo</button>
@@ -215,40 +213,6 @@
         // =============================================
         // VIBRACIÓN — robusta para Android Chrome
         // =============================================
-        let vibActiva = false;
-        let vibTimeout = null;
-
-        // Llama a vibrate(1) desde un gesto del usuario para "desbloquear" la API
-        function vibPreload() {
-            if ("vibrate" in navigator) navigator.vibrate(1);
-        }
-
-        // Loop: patrón largo renovado justo antes de que expire
-        function iniciarVibracion() {
-            if (!("vibrate" in navigator)) return;
-            vibActiva = true;
-            _vibLoop();
-        }
-
-        function _vibLoop() {
-            if (!vibActiva) return;
-            // 3 pulsos de 700ms con 150ms de pausa = 2400ms total
-            navigator.vibrate([700, 150, 700, 150, 700]);
-            vibTimeout = setTimeout(_vibLoop, 2200); // renovar 200ms antes de que expire
-        }
-
-        function pararVibracion() {
-            vibActiva = false;
-            if (vibTimeout) { clearTimeout(vibTimeout); vibTimeout = null; }
-            if ("vibrate" in navigator) navigator.vibrate(0);
-        }
-
-        // Test manual: 3 pulsos cortos para confirmar que funciona
-        window.testVibrar = function() {
-            if (!("vibrate" in navigator)) { alert("Este navegador no soporta vibración."); return; }
-            navigator.vibrate([300, 100, 300, 100, 300]);
-        };
-
         // =============================================
         // LÓGICA PRINCIPAL
         // =============================================
@@ -256,7 +220,6 @@
             BUZON_SECRETO = document.getElementById('inputContrasena').value.trim();
             if (BUZON_SECRETO === "") return alert("Introduce una contraseña.");
             getAudioCtx();
-            vibPreload();
 
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'flex';
@@ -288,7 +251,6 @@
 
         window.iniciarVigilancia = function() {
             getAudioCtx();
-            vibPreload();
             if (navigator.geolocation) navigator.geolocation.getCurrentPosition(()=>{}, ()=>{}, {enableHighAccuracy: true});
             if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
                 DeviceMotionEvent.requestPermission().then(e => { if (e === 'granted') activarSensores(); });
@@ -300,7 +262,6 @@
             document.getElementById('selector-modos').style.display = "none";
             document.getElementById('estado').innerText = "🟢 VIGILANCIA ACTIVA";
             document.getElementById('btnActivar').style.display  = "none";
-            document.getElementById('btnTestVib').style.display  = "none";
             document.getElementById('btnSimular').style.display  = "block";
             document.getElementById('btnPantalla').style.display = "block";
             document.getElementById('btnDetener').style.display  = "block";
@@ -309,7 +270,6 @@
         }
 
         window.simularMovimiento = function() {
-            vibPreload();
             if (vigilando) procesarMovimiento(true);
         };
 
@@ -360,7 +320,6 @@
         function dispararAlarmaSilenciosa() {
             document.body.className = 'alerta-roja';
             document.getElementById('estado').innerText = "🔴 ROBO SILENCIOSO";
-            iniciarVibracion();
             iniciarRastreoGPS(); enviarDatos();
         }
 
@@ -391,7 +350,6 @@
             document.getElementById('btnSimular').style.display  = "none";
             document.getElementById('btnPantalla').style.display = "none";
             document.getElementById('btnDetener').style.display  = "none";
-            document.getElementById('btnTestVib').style.display  = "block";
             document.getElementById('selector-modos').style.display = "block";
             document.getElementById('btnActivar').style.display  = "block";
             enviarDatos();
