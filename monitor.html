@@ -72,45 +72,25 @@
         let BUZON_SECRETO = "";
         let mapa, marcador;
 
-        // --- Audio Engine (Web Audio API) ---
-        // Genera el pitido de alarma internamente, sin URLs externas ni problemas de CORS.
-        let audioCtx = null;
-        let alarmInterval = null;
-        let alarmRunning = false;
-
-        function getAudioCtx() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            return audioCtx;
-        }
-
-        function pitido(frecuencia, duracion, volumen) {
-            const ctx = getAudioCtx();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(frecuencia, ctx.currentTime);
-            gain.gain.setValueAtTime(volumen, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duracion);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + duracion);
-        }
+        // --- Vibración (el sonido lo emite el emisor) ---
+        let alarmaRunning = false;
+        let vibracionInterval = null;
 
         function iniciarAlarma() {
-            if (alarmRunning) return;
-            alarmRunning = true;
-            // Dos tonos alternados (estilo sirena) cada 600ms
-            let toggle = false;
-            alarmInterval = setInterval(() => {
-                pitido(toggle ? 880 : 660, 0.55, 0.6);
-                toggle = !toggle;
-            }, 600);
+            if (alarmaRunning) return;
+            alarmaRunning = true;
+            if ("vibrate" in navigator) {
+                navigator.vibrate([800, 300, 800, 300, 800]);
+                vibracionInterval = setInterval(() => {
+                    if (alarmaRunning) navigator.vibrate([800, 300, 800, 300, 800]);
+                }, 3200);
+            }
         }
 
         function pararAlarma() {
-            alarmRunning = false;
-            if (alarmInterval) { clearInterval(alarmInterval); alarmInterval = null; }
+            alarmaRunning = false;
+            if (vibracionInterval) { clearInterval(vibracionInterval); vibracionInterval = null; }
+            if ("vibrate" in navigator) navigator.vibrate(0);
         }
         // ------------------------------------
 
@@ -118,10 +98,6 @@
             BUZON_SECRETO = document.getElementById('inputContrasena').value.trim();
             if (BUZON_SECRETO === "") return alert("La contraseña es obligatoria.");
             
-            // Desbloquear el AudioContext con el gesto del usuario (click del botón)
-            const ctx = getAudioCtx();
-            if (ctx.state === 'suspended') ctx.resume();
-
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'block';
 
@@ -175,9 +151,8 @@
                             alertaDiv.style.display = 'block';
                             btnSilenciar.style.display = 'block'; 
                             
-                            // Reproducir alarma y vibrar
+                            // Reproducir alarma (la vibración continua se gestiona dentro de iniciarAlarma)
                             iniciarAlarma();
-                            if ("vibrate" in navigator) navigator.vibrate([1000, 500, 1000, 500, 1000]);
                             
                             if (datos.modo === "normal") {
                                 estadoDiv.innerHTML = "🔴 ROBO EN CURSO";
