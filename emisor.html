@@ -87,11 +87,11 @@
         let gpsTracker = null, wakeLock = null, toquesDesbloqueo = 0;
         let latActual = 43.3390, lonActual = -1.7896;
 
-        // --- Audio Engine: Alarma de coche (Web Audio API) ---
+        // --- Audio Engine: Alarma de vehículo multi-fase (Web Audio API) ---
         let audioCtx = null;
-        let alarmaNodes = [];
         let alarmaRunning = false;
         let alarmaTimeout = null;
+        let vibracionInterval = null;
 
         function getAudioCtx() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -99,96 +99,169 @@
             return audioCtx;
         }
 
-        // Pitido corto de advertencia: 3 beeps agudos
+        // Pitido corto de advertencia (3 beeps)
         function playAviso() {
             const ctx = getAudioCtx();
-            [0, 220, 440].forEach(delay => {
+            [0, 200, 400].forEach(delay => {
                 setTimeout(() => {
-                    [880, 1760].forEach(freq => {
-                        const osc = ctx.createOscillator();
-                        const gain = ctx.createGain();
-                        osc.connect(gain); gain.connect(ctx.destination);
-                        osc.type = 'square';
-                        osc.frequency.value = freq;
-                        gain.gain.setValueAtTime(0.4, ctx.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
-                        osc.start(ctx.currentTime);
-                        osc.stop(ctx.currentTime + 0.18);
-                    });
+                    const osc = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    osc.connect(g); g.connect(ctx.destination);
+                    osc.type = 'sine'; osc.frequency.value = 1050;
+                    g.gain.setValueAtTime(0.5, ctx.currentTime);
+                    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+                    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.15);
                 }, delay);
             });
         }
 
-        // Genera un tono de alarma de coche: ataque rápido, caída lenta, con armónicos
-        function tonoAlarma(freqBase, duracion, volumen) {
-            const ctx = getAudioCtx();
-            const comp = ctx.createDynamicsCompressor();
-            comp.threshold.value = -3; comp.ratio.value = 12;
-            comp.connect(ctx.destination);
+        // --- Síntesis FM: genera un tono con modulación de frecuencia ---
+        // Produce el timbre "electrónico-metálico" de las alarmas de coche reales
+        function fmTono(carrier, modRatio, modIdx, dur, volInicio, volFin, ctx, dest) {
+            const t = ctx.currentTime;
+            // Modulador
+            const mod = ctx.createOscillator();
+            const modGain = ctx.createGain();
+            mod.frequency.value = carrier * modRatio;
+            modGain.gain.value = carrier * modIdx;
+            mod.connect(modGain); modGain.connect(/* carrier freq input via AudioParam workaround */ dest);
 
-            // Oscilador principal (diente de sierra — timbre agresivo)
-            const osc1 = ctx.createOscillator();
-            const g1 = ctx.createGain();
-            osc1.type = 'sawtooth';
-            osc1.frequency.value = freqBase;
-            g1.gain.setValueAtTime(0, ctx.currentTime);
-            g1.gain.linearRampToValueAtTime(volumen, ctx.currentTime + 0.01);   // ataque durísimo
-            g1.gain.setValueAtTime(volumen, ctx.currentTime + duracion - 0.05);
-            g1.gain.linearRampToValueAtTime(0, ctx.currentTime + duracion);
-            osc1.connect(g1); g1.connect(comp);
+            // Carrier
+            const car = ctx.createOscillator();
+            const carGain = ctx.createGain();
+            car.type = 'sawtooth';
+            car.frequency.value = carrier;
+            modGain.connect(car.frequency);   // FM: mod -> carrier freq
+            carGain.gain.setValueAtTime(volInicio, t);
+            carGain.gain.linearRampToValueAtTime(volFin, t + dur);
+            car.connect(carGain); carGain.connect(dest);
 
-            // 2ª armónica (onda cuadrada) — añade el "chirp" metálico
-            const osc2 = ctx.createOscillator();
-            const g2 = ctx.createGain();
-            osc2.type = 'square';
-            osc2.frequency.value = freqBase * 1.5;
-            g2.gain.setValueAtTime(0, ctx.currentTime);
-            g2.gain.linearRampToValueAtTime(volumen * 0.4, ctx.currentTime + 0.01);
-            g2.gain.setValueAtTime(volumen * 0.4, ctx.currentTime + duracion - 0.05);
-            g2.gain.linearRampToValueAtTime(0, ctx.currentTime + duracion);
-            osc2.connect(g2); g2.connect(comp);
-
-            // Pitch bend descendente suave (el "woop" de alarma de coche)
-            osc1.frequency.setValueAtTime(freqBase, ctx.currentTime);
-            osc1.frequency.exponentialRampToValueAtTime(freqBase * 0.85, ctx.currentTime + duracion);
-            osc2.frequency.setValueAtTime(freqBase * 1.5, ctx.currentTime);
-            osc2.frequency.exponentialRampToValueAtTime(freqBase * 1.5 * 0.85, ctx.currentTime + duracion);
-
-            osc1.start(ctx.currentTime); osc1.stop(ctx.currentTime + duracion);
-            osc2.start(ctx.currentTime); osc2.stop(ctx.currentTime + duracion);
-
-            return duracion * 1000;
+            mod.start(t); mod.stop(t + dur);
+            car.start(t); car.stop(t + dur);
         }
 
-        // Patrón clásico de alarma de coche: wee-WOO wee-WOO (ciclos de tono alto y bajo)
+        // Secuencia clásica de alarma de coche en 3 fases que se repiten:
+        //   FASE A: 4 chirps rápidos wee↑-woo↓  (yelp mode)
+        //   FASE B: 1 wail largo sweeping up+down
+        //   FASE C: 4 pitidos cortos agudos (horn chirp)
         function iniciarAlarma() {
             if (alarmaRunning) return;
             alarmaRunning = true;
 
-            // Secuencia: [frecuencia, duración(s), volumen] x 2 tonos que se alternan
-            const patron = [
-                [1100, 0.38, 0.75],   // tono ALTO  (wee)
-                [780,  0.38, 0.75],   // tono BAJO  (woo)
-            ];
-            let paso = 0;
+            const ctx = getAudioCtx();
+            const comp = ctx.createDynamicsCompressor();
+            comp.threshold.value = -4; comp.knee.value = 6; comp.ratio.value = 10;
+            comp.connect(ctx.destination);
 
-            function siguienteTono() {
-                if (!alarmaRunning) return;
-                const [freq, dur, vol] = patron[paso % patron.length];
-                tonoAlarma(freq, dur, vol);
-                paso++;
-                // Pequeña pausa entre pares para el efecto "wee-WOO · wee-WOO"
-                const pausa = (paso % 2 === 0) ? 120 : 20;
-                alarmaTimeout = setTimeout(siguienteTono, dur * 1000 + pausa);
+            // FASE A: chirp yelp — sube de 900→1400 Hz en 0.12s, baja 1400→800 en 0.12s, x4
+            function faseA(cb) {
+                let i = 0;
+                function chirp() {
+                    if (!alarmaRunning) return;
+                    const t = ctx.currentTime;
+                    // Subida
+                    const osc1 = ctx.createOscillator(); const g1 = ctx.createGain();
+                    osc1.type = 'sawtooth';
+                    osc1.frequency.setValueAtTime(900, t);
+                    osc1.frequency.exponentialRampToValueAtTime(1450, t + 0.12);
+                    g1.gain.setValueAtTime(0.7, t); g1.gain.linearRampToValueAtTime(0.7, t + 0.11);
+                    g1.gain.linearRampToValueAtTime(0, t + 0.12);
+                    osc1.connect(g1); g1.connect(comp);
+                    osc1.start(t); osc1.stop(t + 0.13);
+                    // Bajada
+                    const osc2 = ctx.createOscillator(); const g2 = ctx.createGain();
+                    osc2.type = 'sawtooth';
+                    osc2.frequency.setValueAtTime(1450, t + 0.12);
+                    osc2.frequency.exponentialRampToValueAtTime(780, t + 0.24);
+                    g2.gain.setValueAtTime(0, t + 0.12); g2.gain.linearRampToValueAtTime(0.65, t + 0.13);
+                    g2.gain.linearRampToValueAtTime(0, t + 0.24);
+                    osc2.connect(g2); g2.connect(comp);
+                    osc2.start(t + 0.12); osc2.stop(t + 0.25);
+                    // Armónica para dar cuerpo
+                    const osc3 = ctx.createOscillator(); const g3 = ctx.createGain();
+                    osc3.type = 'square';
+                    osc3.frequency.setValueAtTime(900 * 1.5, t);
+                    osc3.frequency.exponentialRampToValueAtTime(1450 * 1.5, t + 0.12);
+                    osc3.frequency.exponentialRampToValueAtTime(780 * 1.5, t + 0.24);
+                    g3.gain.setValueAtTime(0.25, t); g3.gain.linearRampToValueAtTime(0, t + 0.24);
+                    osc3.connect(g3); g3.connect(comp);
+                    osc3.start(t); osc3.stop(t + 0.25);
+
+                    i++;
+                    if (i < 4) alarmaTimeout = setTimeout(chirp, 280);
+                    else alarmaTimeout = setTimeout(cb, 350);
+                }
+                chirp();
             }
-            siguienteTono();
+
+            // FASE B: wail — sweep suave 600→1300→600 Hz en 1.4s total
+            function faseB(cb) {
+                if (!alarmaRunning) return;
+                const t = ctx.currentTime;
+                const dur = 1.4;
+                const osc = ctx.createOscillator(); const g = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(600, t);
+                osc.frequency.linearRampToValueAtTime(1300, t + dur / 2);
+                osc.frequency.linearRampToValueAtTime(600, t + dur);
+                g.gain.setValueAtTime(0, t);
+                g.gain.linearRampToValueAtTime(0.7, t + 0.05);
+                g.gain.setValueAtTime(0.7, t + dur - 0.05);
+                g.gain.linearRampToValueAtTime(0, t + dur);
+                osc.connect(g); g.connect(comp);
+                // Armónica
+                const osc2 = ctx.createOscillator(); const g2 = ctx.createGain();
+                osc2.type = 'square';
+                osc2.frequency.setValueAtTime(600 * 2, t);
+                osc2.frequency.linearRampToValueAtTime(1300 * 2, t + dur / 2);
+                osc2.frequency.linearRampToValueAtTime(600 * 2, t + dur);
+                g2.gain.setValueAtTime(0.2, t); g2.gain.linearRampToValueAtTime(0, t + dur);
+                osc2.connect(g2); g2.connect(comp);
+                osc.start(t); osc.stop(t + dur);
+                osc2.start(t); osc2.stop(t + dur);
+                alarmaTimeout = setTimeout(cb, dur * 1000 + 100);
+            }
+
+            // FASE C: 4 pitidos cortos tipo bocina
+            function faseC(cb) {
+                let i = 0;
+                function beep() {
+                    if (!alarmaRunning) return;
+                    const t = ctx.currentTime;
+                    const osc = ctx.createOscillator(); const g = ctx.createGain();
+                    osc.type = 'square'; osc.frequency.value = 1100;
+                    g.gain.setValueAtTime(0.6, t);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+                    osc.connect(g); g.connect(comp);
+                    osc.start(t); osc.stop(t + 0.11);
+                    i++;
+                    if (i < 4) alarmaTimeout = setTimeout(beep, 160);
+                    else alarmaTimeout = setTimeout(cb, 300);
+                }
+                beep();
+            }
+
+            // Ciclo continuo A → B → C → A → ...
+            function ciclo() {
+                if (!alarmaRunning) return;
+                faseA(() => faseB(() => faseC(() => { alarmaTimeout = setTimeout(ciclo, 200); })));
+            }
+            ciclo();
+
+            // Vibración continua mientras suena la alarma
+            if ("vibrate" in navigator) {
+                navigator.vibrate([600, 200, 600, 200, 600, 400]);
+                vibracionInterval = setInterval(() => {
+                    if (alarmaRunning) navigator.vibrate([600, 200, 600, 200, 600, 400]);
+                }, 2800);
+            }
         }
 
         function pararAlarma() {
             alarmaRunning = false;
             if (alarmaTimeout) { clearTimeout(alarmaTimeout); alarmaTimeout = null; }
-            alarmaNodes.forEach(n => { try { if (n.stop) n.stop(); n.disconnect(); } catch(e){} });
-            alarmaNodes = [];
+            if (vibracionInterval) { clearInterval(vibracionInterval); vibracionInterval = null; }
+            if ("vibrate" in navigator) navigator.vibrate(0);
         }
         // ------------------------------------
 
