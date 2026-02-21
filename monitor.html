@@ -80,8 +80,8 @@
         // =============================================
         // TELEGRAM — pon aquí tu token y chat_id
         // =============================================
-        const TELEGRAM_TOKEN  = "PON_AQUI_TU_TOKEN";   // ej: 7123456789:AAFxxxxxx
-        const TELEGRAM_CHAT_ID = "PON_AQUI_TU_CHAT_ID"; // ej: 123456789
+        const TELEGRAM_TOKEN  = "8565258420:AAHB5CHbTJChcFvyW5FMiZ2Jl_tpnSDM8Ho";   // ej: 7123456789:AAFxxxxxx
+        const TELEGRAM_CHAT_ID = "1156363611"; // ej: 123456789
 
         let telegramEnviado = false; // evita enviar spam si el nivel 2 persiste
 
@@ -104,6 +104,7 @@
         let mapa, marcador;
         let centradoActivo = true;
         let ultimaPosicion = null;
+        let ultimaUbicacionTs = 0;
 
         function activarCentrado() {
             centradoActivo = true;
@@ -166,6 +167,7 @@
                     let datos = documento.data();
                     let nuevaPosicion = new L.LatLng(datos.latitud, datos.longitud);
                     ultimaPosicion = nuevaPosicion;
+                    if (datos.ubicacionActualizada) ultimaUbicacionTs = datos.ubicacionActualizada;
                     marcador.setLatLng(nuevaPosicion);
                     if (centradoActivo) mapa.setView(nuevaPosicion, 17, {animate: true, duration: 0.8});
 
@@ -232,8 +234,34 @@
         };
 
         window.abrirEnMaps = function() {
-            if (!ultimaPosicion) return alert("Aún no hay posición disponible.");
-            window.open(`https://maps.google.com/?q=${ultimaPosicion.lat},${ultimaPosicion.lng}`, '_blank');
+            if (!BUZON_SECRETO) return;
+            const btn = document.getElementById('btnMaps');
+            btn.disabled = true;
+            btn.textContent = '⏳ Obteniendo ubicación...';
+
+            // Enviar comando al emisor
+            setDoc(doc(db, "dispositivos", BUZON_SECRETO), { comando: "ubicacion" }, { merge: true });
+
+            // Esperar a que el emisor actualice ubicacionActualizada en Firebase (máx 12s)
+            const inicio = Date.now();
+            const tsAntes = ultimaUbicacionTs;
+
+            const intervalo = setInterval(() => {
+                // La posición se actualiza via onSnapshot; comprobamos si cambió el timestamp
+                if (ultimaUbicacionTs !== tsAntes) {
+                    clearInterval(intervalo);
+                    btn.disabled = false;
+                    btn.textContent = '🗺️ Abrir en Google Maps';
+                    window.open(`https://maps.google.com/?q=${ultimaPosicion.lat},${ultimaPosicion.lng}`, '_blank');
+                } else if (Date.now() - inicio > 12000) {
+                    clearInterval(intervalo);
+                    btn.disabled = false;
+                    btn.textContent = '🗺️ Abrir en Google Maps';
+                    // Si no respondió, abrir con la última posición conocida
+                    if (ultimaPosicion) window.open(`https://maps.google.com/?q=${ultimaPosicion.lat},${ultimaPosicion.lng}`, '_blank');
+                    else alert("El emisor no respondió. Comprueba que está activo.");
+                }
+            }, 500);
         }
 
         window.apagarRemoto = function() {
