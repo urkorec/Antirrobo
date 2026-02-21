@@ -29,6 +29,7 @@
         .botones-container { display: flex; gap: 8px; justify-content: space-between; display: none; }
         .btn-remoto { flex: 1; background: rgba(255,255,255,0.1); color: #ff4d4d; border: 1px solid #ff4d4d; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer;}
         .btn-silenciar { flex: 1; background: linear-gradient(45deg, #f12711, #f5af19); color: white; border: none; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; text-transform: uppercase;}
+        .btn-maps { width: 100%; background: linear-gradient(45deg, #1a73e8, #0d47a1); color: white; border: none; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; margin-top: 8px; display: none; }
 
         #btn-centrar { position: absolute; bottom: 90px; right: 15px; z-index: 1000; width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer; font-size: 20px; display: none; box-shadow: 0 3px 10px rgba(0,0,0,0.4); transition: background 0.2s, transform 0.15s; }
         #btn-centrar.activo   { background: #4facfe; }
@@ -57,6 +58,7 @@
                 <button id="btnSilenciarRemoto" class="btn-silenciar" onclick="silenciarRemoto()">🔕 Silenciar</button>
                 <button id="btnApagarRemoto" class="btn-remoto" onclick="apagarRemoto()">🛑 Apagar</button>
             </div>
+            <button id="btnMaps" class="btn-maps" onclick="abrirEnMaps()">🗺️ Abrir en Google Maps</button>
         </div>
         <button id="btn-centrar" class="activo" onclick="activarCentrado()">📍</button>
         <div id="mapa"></div>
@@ -75,9 +77,32 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // =============================================
+        // TELEGRAM — pon aquí tu token y chat_id
+        // =============================================
+        const TELEGRAM_TOKEN  = "PON_AQUI_TU_TOKEN";   // ej: 7123456789:AAFxxxxxx
+        const TELEGRAM_CHAT_ID = "PON_AQUI_TU_CHAT_ID"; // ej: 123456789
+
+        let telegramEnviado = false; // evita enviar spam si el nivel 2 persiste
+
+        async function enviarTelegram(mensaje) {
+            if (telegramEnviado) return;
+            telegramEnviado = true;
+            try {
+                await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: mensaje })
+                });
+            } catch(e) {
+                console.error("Error enviando Telegram:", e);
+            }
+        }
+        // =============================================
+
         let BUZON_SECRETO = "";
         let mapa, marcador;
-        let centradoActivo = true;   // arranca centrado
+        let centradoActivo = true;
         let ultimaPosicion = null;
 
         function activarCentrado() {
@@ -90,14 +115,11 @@
 
         // =============================================
         // VIBRACIÓN — robusta para Android Chrome
-        // El truco: llamar vibrate(1) en cada gesto del
-        // usuario para mantener el "permiso" activo.
         // =============================================
         let alarmaRunning = false;
         let vibLoop = null;
 
         function vibPreload() {
-            // 1ms invisible — desbloquea la API en el contexto actual
             if ("vibrate" in navigator) navigator.vibrate(1);
         }
 
@@ -109,9 +131,7 @@
 
         function _vibTick() {
             if (!alarmaRunning) return;
-            // Llamada simple de duración larga — más fiable que arrays en Android
             if ("vibrate" in navigator) navigator.vibrate(900);
-            // Renovar antes de que expire
             vibLoop = setTimeout(_vibTick, 1100);
         }
 
@@ -124,7 +144,7 @@
         window.iniciarSesion = function() {
             BUZON_SECRETO = document.getElementById('inputContrasena').value.trim();
             if (BUZON_SECRETO === "") return alert("La contraseña es obligatoria.");
-            vibPreload();   // desbloquear vibración desde el gesto del login
+            vibPreload();
             
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'block';
@@ -134,7 +154,6 @@
             marcador = L.marker([43.3390, -1.7896]).addTo(mapa);
             L.control.zoom({ position: 'bottomright' }).addTo(mapa);
 
-            // Mostrar botón de centrado y desactivar seguimiento si el usuario mueve el mapa
             document.getElementById('btn-centrar').style.display = 'block';
             mapa.on('dragstart', () => {
                 centradoActivo = false;
@@ -150,20 +169,23 @@
                     marcador.setLatLng(nuevaPosicion);
                     if (centradoActivo) mapa.setView(nuevaPosicion, 17, {animate: true, duration: 0.8});
 
-                    let modoDiv = document.getElementById('modo-texto');
-                    let estadoDiv = document.getElementById('estado-tracker');
-                    let alertaDiv = document.getElementById('alerta');
+                    let modoDiv    = document.getElementById('modo-texto');
+                    let estadoDiv  = document.getElementById('estado-tracker');
+                    let alertaDiv  = document.getElementById('alerta');
                     let cajaBotones = document.getElementById('cajaBotones');
                     let btnSilenciar = document.getElementById('btnSilenciarRemoto');
 
                     if(datos.modo === "normal") modoDiv.innerHTML = "🔵 Sigilo";
                     else if(datos.modo === "seguro") modoDiv.innerHTML = "🔴 Alarma";
 
+                    // El botón Maps se muestra siempre que haya posición, pase lo que pase
+                    document.getElementById('btnMaps').style.display = 'block';
+
                     if (!datos.activo) {
                         estadoDiv.innerHTML = "⚪ Apagado";
                         estadoDiv.style.color = "#888";
                         alertaDiv.style.display = 'none';
-                        cajaBotones.style.display = 'none'; 
+                        cajaBotones.style.display = 'none';
                         pararAlarma();
                     } else {
                         cajaBotones.style.display = 'flex'; 
@@ -174,6 +196,7 @@
                             alertaDiv.style.display = 'none';
                             btnSilenciar.style.display = 'none';
                             pararAlarma();
+                            telegramEnviado = false; // resetear para el próximo evento
                         
                         } else if (datos.nivelAlarma === 1) {
                             alertaDiv.style.display = 'none';
@@ -187,16 +210,19 @@
                         } else if (datos.nivelAlarma === 2) {
                             alertaDiv.style.display = 'block';
                             btnSilenciar.style.display = 'block'; 
-                            
-                            // Reproducir alarma (la vibración continua se gestiona dentro de iniciarAlarma)
                             iniciarAlarma();
-                            
+
                             if (datos.modo === "normal") {
                                 estadoDiv.innerHTML = "🔴 ROBO EN CURSO";
                                 alertaDiv.innerHTML = "¡BICI EN MOVIMIENTO!";
+                                // Incluir coordenadas en el mensaje de Telegram
+                                const mapsUrl = `https://maps.google.com/?q=${datos.latitud},${datos.longitud}`;
+                                enviarTelegram(`🚨 ¡ALERTA! Bici en movimiento detectada.\n📍 Ubicación: ${mapsUrl}`);
                             } else {
                                 estadoDiv.innerHTML = "🔴 ALARMA SONANDO";
                                 alertaDiv.innerHTML = "¡ROBO DETECTADO!";
+                                const mapsUrl = `https://maps.google.com/?q=${datos.latitud},${datos.longitud}`;
+                                enviarTelegram(`🚨 ¡ALERTA! Robo detectado. Alarma sonando.\n📍 Ubicación: ${mapsUrl}`);
                             }
                             estadoDiv.style.color = "#f87171";
                         }
@@ -204,6 +230,11 @@
                 }
             });
         };
+
+        window.abrirEnMaps = function() {
+            if (!ultimaPosicion) return alert("Aún no hay posición disponible.");
+            window.open(`https://maps.google.com/?q=${ultimaPosicion.lat},${ultimaPosicion.lng}`, '_blank');
+        }
 
         window.apagarRemoto = function() {
             if(!BUZON_SECRETO) return;
